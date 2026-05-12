@@ -124,6 +124,22 @@ func SetupRouter() *gin.Engine {
 			tag.DELETE("/:id", middleware.IsAdminLogged(), tagHandler.DeleteTag)
 		}
 
+		{
+			attachmentRepo := repository.NewAttachmentRepository(db)
+			attachmentService := service.NewAttachmentService(attachmentRepo)
+			attachmentHandler := handler.NewAttachmentHandler(attachmentService)
+
+			attachment := v1.Group("/attachments")
+
+			attachment.Use(middleware.JWTMiddleware())
+			attachment.Use(middleware.IsAdminLogged())
+
+			attachment.GET("/", attachmentHandler.GetAllAttachments)
+			attachment.GET("/:id", attachmentHandler.GetAttachmentByID)
+			attachment.DELETE("/:id", attachmentHandler.DeleteAttachment)
+			attachment.GET("/post/:post_id", attachmentHandler.GetAttachmentsByPostID)
+		}
+
 	}
 
 	return r
