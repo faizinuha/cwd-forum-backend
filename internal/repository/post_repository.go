@@ -3,16 +3,19 @@ package repository
 import (
 	"gin-quickstart/internal/model"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type PostRepository struct {
-	GormDB *gorm.DB
+	GormDB      *gorm.DB
+	RedisClient *redis.Client
 }
 
-func NewPostRepository(db *gorm.DB) *PostRepository {
+func NewPostRepository(db *gorm.DB, redis *redis.Client) *PostRepository {
 	return &PostRepository{
-		GormDB: db,
+		GormDB:      db,
+		RedisClient: redis,
 	}
 }
 

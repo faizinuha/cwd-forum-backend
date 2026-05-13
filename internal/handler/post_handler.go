@@ -40,7 +40,7 @@ type UpdatePostRequest struct {
 
 // GETTER
 func (h PostHandler) GetAllPosts(c *gin.Context) {
-	posts, err := h.s.GetAllPosts()
+	posts, err := h.s.GetAllPosts(c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -69,7 +69,7 @@ func (h PostHandler) GetPostByID(c *gin.Context) {
 		return
 	}
 
-	post, err := h.s.GetPostByID(id)
+	post, err := h.s.GetPostByID(id, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -98,7 +98,7 @@ func (h PostHandler) GetPostsByThreadID(c *gin.Context) {
 		return
 	}
 
-	posts, err := h.s.GetPostsByThreadID(threadID)
+	posts, err := h.s.GetPostsByThreadID(threadID, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -127,7 +127,7 @@ func (h PostHandler) GetPostsByAuthorID(c *gin.Context) {
 		return
 	}
 
-	posts, err := h.s.GetPostsByAuthorID(authorID)
+	posts, err := h.s.GetPostsByAuthorID(authorID, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -156,7 +156,7 @@ func (h PostHandler) GetPostsByParentID(c *gin.Context) {
 		return
 	}
 
-	posts, err := h.s.GetPostsByParentID(parentID)
+	posts, err := h.s.GetPostsByParentID(parentID, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -185,7 +185,7 @@ func (h PostHandler) GetPostVotes(c *gin.Context) {
 		return
 	}
 
-	votes, err := h.s.GetPostVotes(postID)
+	votes, err := h.s.GetPostVotes(postID, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -272,6 +272,7 @@ func (h *PostHandler) Create(c *gin.Context) {
 		req.Content,
 		req.AuthorID,
 		req.ParentID,
+		c,
 	)
 
 	for _, file := range Attachments {
@@ -296,7 +297,7 @@ func (h *PostHandler) Create(c *gin.Context) {
 			})
 
 			attachment := model.Attachment{
-				PostId:     post.ID,
+				PostID:     post.ID,
 				UploaderId: post.AuthorID,
 				Url:        fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName),
 				Filename:   newFileName,
@@ -306,7 +307,7 @@ func (h *PostHandler) Create(c *gin.Context) {
 
 			post.Attachments = append(post.Attachments, attachment)
 
-			h.s.CreateAttachment(post, &attachment)
+			h.s.CreateAttachment(post, &attachment, c)
 
 			if uErr != nil {
 				return
@@ -354,6 +355,7 @@ func (h *PostHandler) Update(c *gin.Context) {
 	post, err := h.s.Update(
 		ID,
 		req.Content,
+		c,
 	)
 
 	if err != nil {
@@ -382,7 +384,7 @@ func (h *PostHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	err = h.s.Delete(ID)
+	err = h.s.Delete(ID, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -432,7 +434,7 @@ func (h *PostHandler) VotePost(c *gin.Context) {
 		return
 	}
 
-	err = h.s.Vote(ID, uint64(userID.(uint)), req.Value)
+	err = h.s.Vote(ID, uint64(userID.(uint)), req.Value, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -482,7 +484,7 @@ func (h *PostHandler) ReactPost(c *gin.Context) {
 		return
 	}
 
-	err = h.s.React(ID, uint64(userID.(uint)), req.Emoji)
+	err = h.s.React(ID, uint64(userID.(uint)), req.Emoji, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -511,7 +513,7 @@ func (h *PostHandler) MarkAsSolution(c *gin.Context) {
 		return
 	}
 
-	post, err := h.s.GetPostByID(ID)
+	post, err := h.s.GetPostByID(ID, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -521,7 +523,7 @@ func (h *PostHandler) MarkAsSolution(c *gin.Context) {
 		return
 	}
 
-	err = h.s.MarkAsSolution(uint64(post.ID), uint64(userId))
+	err = h.s.MarkAsSolution(uint64(post.ID), uint64(userId), c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
