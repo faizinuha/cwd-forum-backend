@@ -41,6 +41,5 @@ func main() {
 	}
 
 	r := routes.SetupRouter(deps)
-	r.Run(":6969")
-
+	r.Run(":8080")
 }
