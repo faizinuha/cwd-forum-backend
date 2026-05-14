@@ -4,15 +4,20 @@ import (
 	"errors"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
+	"gin-quickstart/pkg/email"
 	"time"
 )
 
 type NotificationService struct {
-	Repo *repository.NotificationRepository
+	Repo        *repository.NotificationRepository
+	emailClient *email.EmailClient
 }
 
 func NewNotificationService(repo *repository.NotificationRepository) *NotificationService {
-	return &NotificationService{Repo: repo}
+	return &NotificationService{
+		Repo:        repo,
+		emailClient: email.NewEmailClient(),
+	}
 }
 
 func (s NotificationService) GetNotificationsByUserID(userID uint64) ([]model.Notification, error) {
@@ -43,6 +48,12 @@ func (s NotificationService) CreateNotification(notification *model.Notification
 	err := s.Repo.Create(notification)
 	if err != nil {
 		return nil, err
+	}
+
+	// Send email notification if user has an email
+	var user model.User
+	if err := s.Repo.GormDB.Select("email").First(&user, notification.UserId).Error; err == nil && user.Email != "" {
+		go s.emailClient.SendNotificationEmail(user.Email, notification.Type, notification.Payload)
 	}
 
 	return notification, nil

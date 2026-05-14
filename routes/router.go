@@ -189,6 +189,8 @@ func SetupRouter(wp *worker.WorkerPool) *gin.Engine {
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/logout", middleware.JWTMiddleware(redis), authHandler.Logout)
 			auth.PATCH("/profile", middleware.JWTMiddleware(redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(wp.Worker), authHandler.UpdateProfile)
+			auth.POST("/forgot-password", authHandler.ForgotPassword)
+			auth.POST("/reset-password", authHandler.ResetPassword)
 		}
 
 	}

@@ -6,22 +6,27 @@ import (
 	"errors"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
+	"gin-quickstart/pkg/email"
 	"gin-quickstart/pkg/jwt"
+	"log"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
-	r *repository.AuthRepository
+	r           *repository.AuthRepository
+	emailClient *email.EmailClient
 }
 
 func NewAuthService(r *repository.AuthRepository) *AuthService {
 	return &AuthService{
-		r: r,
+		r:           r,
+		emailClient: email.NewEmailClient(),
 	}
 }
 
@@ -187,7 +192,17 @@ func (s *AuthService) Register(
 		return errors.New("Email already Exists!")
 	}
 
-	return s.r.Register(user)
+	err := s.r.Register(user)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		if err := s.emailClient.SendWelcomeEmail(Email, Name); err != nil {
+			log.Printf("Failed to send welcome email to %s: %v", Email, err)
+		}
+	}()
+	return nil
 }
 
 func (s *AuthService) ChangePassword(userID uint64, newPassword string, ctx *gin.Context) error {
@@ -257,4 +272,44 @@ func (s *AuthService) UpdateProfile(
 	s.r.RedisClient.Del(ctx, "user:email:"+user.Email)
 
 	return nil
+}
+
+func (s *AuthService) ForgotPassword(email string, resetBaseURL string, ctx *gin.Context) error {
+	user, err := s.r.GetUserByEmail(email)
+	if err != nil {
+		// Return nil to avoid leaking whether email exists
+		return nil
+	}
+
+	token := uuid.New().String()
+	if err := s.r.StoreResetToken(ctx, user.Email, token); err != nil {
+		return err
+	}
+
+	resetLink := resetBaseURL + "?token=" + token
+	go func() {
+		if err := s.emailClient.SendForgotPasswordEmail(user.Email, resetLink); err != nil {
+			log.Printf("Failed to send forgot password email to %s: %v", user.Email, err)
+		}
+	}()
+	return nil
+}
+
+func (s *AuthService) ResetPassword(token string, newPassword string, ctx *gin.Context) error {
+	email, err := s.r.GetEmailByResetToken(ctx, token)
+	if err != nil {
+		return errors.New("invalid or expired token")
+	}
+
+	user, err := s.r.GetUserByEmail(email)
+	if err != nil {
+		return err
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	return s.r.ChangePassword(uint64(user.ID), string(hashed))
 }
