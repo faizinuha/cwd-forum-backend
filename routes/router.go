@@ -164,6 +164,22 @@ func SetupRouter() *gin.Engine {
 		}
 
 		{
+			notificationRepo := repository.NewNotificationRepository(db, redis)
+			notificationService := service.NewNotificationService(notificationRepo)
+			notificationHandler := handler.NewNotificationHandler(notificationService)
+
+			notification := v1.Group("/notifications")
+			notification.Use(middleware.JWTMiddleware(redis))
+
+			notification.GET("/", notificationHandler.GetNotifications)
+			notification.GET("/:id", notificationHandler.GetNotificationByID)
+			notification.POST("/", notificationHandler.CreateNotification)
+			notification.PATCH("/:id/read", notificationHandler.MarkAsRead)
+			notification.PATCH("/:id", notificationHandler.UpdateNotification)
+			notification.DELETE("/:id", notificationHandler.DeleteNotification)
+		}
+
+		{
 			authRepo := repository.NewAuthRepository(db, redis)
 			authService := service.NewAuthService(authRepo)
 			authHandler := handler.NewAuthHandler(authService)
