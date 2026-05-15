@@ -2,6 +2,7 @@ package handler
 
 import (
 	"gin-quickstart/internal/service"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -33,14 +34,14 @@ func (h TagHandler) GetAllTags(c *gin.Context) {
 	tags, err := h.s.GetAllTags(c)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    tags,
 	})
@@ -51,7 +52,7 @@ func (h TagHandler) GetTagByID(c *gin.Context) {
 	id, err := strconv.ParseUint(idParam, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "invalid tag ID",
 		})
@@ -60,14 +61,14 @@ func (h TagHandler) GetTagByID(c *gin.Context) {
 
 	tag, err := h.s.GetTagByID(c, id)
 	if err != nil {
-		c.JSON(404, gin.H{
+		c.JSON(http.StatusNotFound, gin.H{
 			"success": false,
 			"error":   "tag not found",
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    tag,
 	})
@@ -78,14 +79,14 @@ func (h TagHandler) GetTagBySlug(c *gin.Context) {
 
 	tag, err := h.s.GetTagBySlug(c, slug)
 	if err != nil {
-		c.JSON(404, gin.H{
+		c.JSON(http.StatusNotFound, gin.H{
 			"success": false,
 			"error":   "tag not found",
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    tag,
 	})
@@ -94,7 +95,7 @@ func (h TagHandler) GetTagBySlug(c *gin.Context) {
 func (h *TagHandler) CreateTag(c *gin.Context) {
 	var req CreateTagRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
@@ -103,14 +104,14 @@ func (h *TagHandler) CreateTag(c *gin.Context) {
 
 	tag, err := h.s.Create(c, req.Name, req.Slug, req.Color)
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(201, gin.H{
+	c.JSON(http.StatusCreated, gin.H{
 		"success": true,
 		"data":    tag,
 	})
@@ -121,7 +122,7 @@ func (h *TagHandler) UpdateTag(c *gin.Context) {
 	id, err := strconv.ParseUint(idParam, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "invalid tag ID",
 		})
@@ -130,7 +131,7 @@ func (h *TagHandler) UpdateTag(c *gin.Context) {
 
 	var req UpdateTagRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
@@ -139,14 +140,14 @@ func (h *TagHandler) UpdateTag(c *gin.Context) {
 
 	tag, err := h.s.Update(c, id, req.Name, req.Slug, req.Color)
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    tag,
 	})
@@ -157,7 +158,7 @@ func (h *TagHandler) DeleteTag(c *gin.Context) {
 	id, err := strconv.ParseUint(idParam, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "invalid tag ID",
 		})
@@ -166,14 +167,14 @@ func (h *TagHandler) DeleteTag(c *gin.Context) {
 
 	err = h.s.Delete(c, id)
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "tag deleted successfully",
 	})

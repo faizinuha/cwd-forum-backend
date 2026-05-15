@@ -3,6 +3,7 @@ package middleware
 import (
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/repository"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -12,7 +13,7 @@ func IsAdminLogged(userRepo repository.UserRepository, redis *redis.Client) gin.
 	return func(c *gin.Context) {
 		userID, exists := c.Get("user_id")
 		if !exists {
-			c.JSON(401, gin.H{
+			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
 				"error":   "Unauthorized",
 			})
@@ -22,7 +23,7 @@ func IsAdminLogged(userRepo repository.UserRepository, redis *redis.Client) gin.
 
 		user, err := userRepo.GetUserByID(c, uint64(userID.(uint)))
 		if err != nil {
-			c.JSON(500, gin.H{
+			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"error":   "Internal Server Error",
 			})
@@ -31,7 +32,7 @@ func IsAdminLogged(userRepo repository.UserRepository, redis *redis.Client) gin.
 		}
 
 		if user.Role != enum.RoleAdmin.String() {
-			c.JSON(403, gin.H{
+			c.JSON(http.StatusForbidden, gin.H{
 				"success": false,
 				"error":   "Forbidden",
 			})
