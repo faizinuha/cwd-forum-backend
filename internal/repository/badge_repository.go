@@ -2,25 +2,29 @@ package repository
 
 import (
 	"gin-quickstart/internal/model"
+	"gin-quickstart/pkg/logger"
 
+	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type BadgeRepository struct {
+	log         *logger.Logger
 	GormDB      *gorm.DB
 	RedisClient *redis.Client
 }
 
-func NewBadgeRepository(db *gorm.DB, redis *redis.Client) *BadgeRepository {
+func NewBadgeRepository(log *logger.Logger, db *gorm.DB, redis *redis.Client) *BadgeRepository {
 	return &BadgeRepository{
+		log:         log,
 		GormDB:      db,
 		RedisClient: redis,
 	}
 }
 
 // GETTER
-func (r BadgeRepository) GetAllBadges() ([]*model.Badge, error) {
+func (r BadgeRepository) GetAllBadges(ctx *gin.Context) ([]*model.Badge, error) {
 	var badges []*model.Badge
 	err := r.GormDB.Find(&badges).Error
 	if err != nil {
@@ -29,7 +33,7 @@ func (r BadgeRepository) GetAllBadges() ([]*model.Badge, error) {
 	return badges, nil
 }
 
-func (r BadgeRepository) GetBadgeByID(id uint64) (*model.Badge, error) {
+func (r BadgeRepository) GetBadgeByID(ctx *gin.Context, id uint64) (*model.Badge, error) {
 	var badge model.Badge
 	err := r.GormDB.First(&badge, id).Error
 	if err != nil {
@@ -39,14 +43,14 @@ func (r BadgeRepository) GetBadgeByID(id uint64) (*model.Badge, error) {
 }
 
 // SETTER
-func (r *BadgeRepository) Create(badge *model.Badge) error {
+func (r *BadgeRepository) Create(ctx *gin.Context, badge *model.Badge) error {
 	return r.GormDB.Create(badge).Error
 }
 
-func (r *BadgeRepository) Update(badge *model.Badge) error {
+func (r *BadgeRepository) Update(ctx *gin.Context, badge *model.Badge) error {
 	return r.GormDB.Save(badge).Error
 }
 
-func (r *BadgeRepository) Delete(badge *model.Badge) error {
+func (r *BadgeRepository) Delete(ctx *gin.Context, badge *model.Badge) error {
 	return r.GormDB.Delete(badge).Error
 }

@@ -7,6 +7,7 @@ import (
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
+	"gin-quickstart/pkg/logger"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -23,12 +24,14 @@ import (
 )
 
 type PostService struct {
-	r *repository.PostRepository
+	log *logger.Logger
+	r   *repository.PostRepository
 }
 
-func NewPostService(r *repository.PostRepository) *PostService {
+func NewPostService(log *logger.Logger, r *repository.PostRepository) *PostService {
 	return &PostService{
-		r: r,
+		log: log,
+		r:   r,
 	}
 }
 
@@ -51,7 +54,7 @@ func (s PostService) GetAllPosts(ctx *gin.Context) ([]model.Post, error) {
 		return nil, getStatus.Err()
 	}
 
-	posts, err := s.r.GetAllPosts()
+	posts, err := s.r.GetAllPosts(ctx)
 
 	if err != nil {
 		return nil, err
@@ -72,7 +75,7 @@ func (s PostService) GetAllPosts(ctx *gin.Context) ([]model.Post, error) {
 	return posts, nil
 }
 
-func (s PostService) GetPostByID(id uint64, ctx *gin.Context) (*model.Post, error) {
+func (s PostService) GetPostByID(ctx *gin.Context, id uint64) (*model.Post, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "post:id:"+strconv.FormatUint(id, 10))
 
 	if getStatus.Err() == nil {
@@ -90,7 +93,7 @@ func (s PostService) GetPostByID(id uint64, ctx *gin.Context) (*model.Post, erro
 		return nil, getStatus.Err()
 	}
 
-	post, err := s.r.GetPostByID(id)
+	post, err := s.r.GetPostByID(ctx, id)
 
 	if err != nil {
 		return nil, err
@@ -111,7 +114,7 @@ func (s PostService) GetPostByID(id uint64, ctx *gin.Context) (*model.Post, erro
 	return post, nil
 }
 
-func (s PostService) GetPostsByThreadID(threadID uint64, ctx *gin.Context) ([]model.Post, error) {
+func (s PostService) GetPostsByThreadID(ctx *gin.Context, threadID uint64) ([]model.Post, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "posts:thread_id:"+strconv.FormatUint(threadID, 10))
 
 	if getStatus.Err() == nil {
@@ -129,7 +132,7 @@ func (s PostService) GetPostsByThreadID(threadID uint64, ctx *gin.Context) ([]mo
 		return nil, getStatus.Err()
 	}
 
-	posts, err := s.r.GetPostsByThreadID(threadID)
+	posts, err := s.r.GetPostsByThreadID(ctx, threadID)
 
 	if err != nil {
 		return nil, err
@@ -150,7 +153,7 @@ func (s PostService) GetPostsByThreadID(threadID uint64, ctx *gin.Context) ([]mo
 	return posts, nil
 }
 
-func (s PostService) GetPostsByAuthorID(authorID uint64, ctx *gin.Context) ([]model.Post, error) {
+func (s PostService) GetPostsByAuthorID(ctx *gin.Context, authorID uint64) ([]model.Post, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "posts:author_id:"+strconv.FormatUint(authorID, 10))
 
 	if getStatus.Err() == nil {
@@ -168,7 +171,7 @@ func (s PostService) GetPostsByAuthorID(authorID uint64, ctx *gin.Context) ([]mo
 		return nil, getStatus.Err()
 	}
 
-	posts, err := s.r.GetPostsByAuthorID(authorID)
+	posts, err := s.r.GetPostsByAuthorID(ctx, authorID)
 
 	if err != nil {
 		return nil, err
@@ -189,7 +192,7 @@ func (s PostService) GetPostsByAuthorID(authorID uint64, ctx *gin.Context) ([]mo
 	return posts, nil
 }
 
-func (s PostService) GetPostsByParentID(parentID uint64, ctx *gin.Context) ([]model.Post, error) {
+func (s PostService) GetPostsByParentID(ctx *gin.Context, parentID uint64) ([]model.Post, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "post:parent:"+strconv.FormatUint(parentID, 10))
 
 	if getStatus.Err() == nil {
@@ -207,7 +210,7 @@ func (s PostService) GetPostsByParentID(parentID uint64, ctx *gin.Context) ([]mo
 		return nil, getStatus.Err()
 	}
 
-	posts, err := s.r.GetPostsByParentID(parentID)
+	posts, err := s.r.GetPostsByParentID(ctx, parentID)
 
 	if err != nil {
 		return nil, err
@@ -228,7 +231,7 @@ func (s PostService) GetPostsByParentID(parentID uint64, ctx *gin.Context) ([]mo
 	return posts, nil
 }
 
-func (s PostService) GetPostVotes(postID uint64, ctx *gin.Context) ([]model.Vote, error) {
+func (s PostService) GetPostVotes(ctx *gin.Context, postID uint64) ([]model.Vote, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "post:votes:"+strconv.FormatUint(postID, 10))
 
 	if getStatus.Err() == nil {
@@ -246,7 +249,7 @@ func (s PostService) GetPostVotes(postID uint64, ctx *gin.Context) ([]model.Vote
 		return nil, getStatus.Err()
 	}
 
-	votes, err := s.r.GetPostVotes(postID)
+	votes, err := s.r.GetPostVotes(ctx, postID)
 
 	if err != nil {
 		return nil, err
@@ -269,12 +272,12 @@ func (s PostService) GetPostVotes(postID uint64, ctx *gin.Context) ([]model.Vote
 
 // SETTER
 func (s *PostService) Create(
+	ctx *gin.Context,
 	ThreadID uint,
 	Content string,
 	AuthorID uint,
 	ParentId *uint,
 	Attachments []*multipart.FileHeader,
-	ctx *gin.Context,
 ) (*model.Post, error) {
 	post := &model.Post{
 		ThreadID: ThreadID,
@@ -290,7 +293,7 @@ func (s *PostService) Create(
 	}
 
 	if ParentId != nil {
-		parentPost, err := s.r.GetPostByID(uint64(*ParentId))
+		parentPost, err := s.r.GetPostByID(ctx, uint64(*ParentId))
 
 		if err != nil {
 			return nil, err
@@ -333,7 +336,7 @@ func (s *PostService) Create(
 
 			post.Attachments = append(post.Attachments, attachment)
 
-			s.CreateAttachment(post, &attachment, ctx)
+			s.CreateAttachment(ctx, post, &attachment)
 
 			if uErr != nil {
 				return
@@ -342,7 +345,7 @@ func (s *PostService) Create(
 		})
 	}
 
-	err := s.r.Create(post)
+	err := s.r.Create(ctx, post)
 
 	if err != nil {
 		return nil, err
@@ -384,11 +387,11 @@ func (s *PostService) Create(
 }
 
 func (s *PostService) Update(
+	ctx *gin.Context,
 	ID uint64,
 	Content *string,
-	ctx *gin.Context,
 ) (*model.Post, error) {
-	post, err := s.r.GetPostByID(ID)
+	post, err := s.r.GetPostByID(ctx, ID)
 
 	if err != nil {
 		return nil, err
@@ -404,7 +407,7 @@ func (s *PostService) Update(
 
 	post.IsEdited = true
 
-	err = s.r.Update(post)
+	err = s.r.Update(ctx, post)
 
 	if err != nil {
 		return nil, err
@@ -443,8 +446,8 @@ func (s *PostService) Update(
 	return post, nil
 }
 
-func (s *PostService) Delete(ID uint64, ctx *gin.Context) error {
-	post, err := s.r.GetPostByID(ID)
+func (s *PostService) Delete(ctx *gin.Context, ID uint64) error {
+	post, err := s.r.GetPostByID(ctx, ID)
 
 	if err != nil {
 		return err
@@ -457,14 +460,14 @@ func (s *PostService) Delete(ID uint64, ctx *gin.Context) error {
 	replies := post.Posts
 
 	for _, reply := range replies {
-		err = s.Delete(uint64(reply.ID), ctx)
+		err = s.Delete(ctx, uint64(reply.ID))
 
 		if err != nil {
 			return err
 		}
 	}
 
-	delErr := s.r.Delete(post)
+	delErr := s.r.Delete(ctx, post)
 
 	if delErr != nil {
 		return delErr
@@ -503,8 +506,8 @@ func (s *PostService) Delete(ID uint64, ctx *gin.Context) error {
 	return nil
 }
 
-func (s *PostService) Vote(postID uint64, userID uint64, value int, ctx *gin.Context) error {
-	post, err := s.r.GetPostByID(postID)
+func (s *PostService) Vote(ctx *gin.Context, postID uint64, userID uint64, value int) error {
+	post, err := s.GetPostByID(ctx, postID)
 
 	if err != nil {
 		return err
@@ -566,14 +569,14 @@ func (s *PostService) Vote(postID uint64, userID uint64, value int, ctx *gin.Con
 	return nil
 }
 
-func (s *PostService) React(postID uint64, userID uint64, emoji int, ctx *gin.Context) error {
+func (s *PostService) React(ctx *gin.Context, postID uint64, userID uint64, emoji int) error {
 	emojiValue, eErr := enum.EmojiFromInt(emoji)
 
 	if eErr != true {
 		return errors.New("Emoji is not registered")
 	}
 
-	post, err := s.r.GetPostByID(postID)
+	post, err := s.r.GetPostByID(ctx, postID)
 
 	if err != nil {
 		return err
@@ -629,8 +632,8 @@ func (s *PostService) React(postID uint64, userID uint64, emoji int, ctx *gin.Co
 	return nil
 }
 
-func (s *PostService) MarkAsSolution(postID uint64, userID uint64, ctx *gin.Context) error {
-	post, err := s.r.GetPostByID(postID)
+func (s *PostService) MarkAsSolution(ctx *gin.Context, postID uint64, userID uint64) error {
+	post, err := s.r.GetPostByID(ctx, postID)
 
 	if err != nil {
 		return err
@@ -706,9 +709,9 @@ func (s *PostService) MarkAsSolution(postID uint64, userID uint64, ctx *gin.Cont
 	return nil
 }
 
-func (s *PostService) CreateAttachment(post *model.Post, attachment *model.Attachment, ctx *gin.Context) (*model.Attachment, error) {
+func (s *PostService) CreateAttachment(ctx *gin.Context, post *model.Post, attachment *model.Attachment) (*model.Attachment, error) {
 
-	createdAttachment, err := s.r.CreateAttachment(uint64(post.ID), attachment)
+	createdAttachment, err := s.r.CreateAttachment(ctx, uint64(post.ID), attachment)
 
 	if err != nil {
 		return nil, err

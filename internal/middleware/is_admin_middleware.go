@@ -20,7 +20,7 @@ func IsAdminLogged(userRepo repository.UserRepository, redis *redis.Client) gin.
 			return
 		}
 
-		user, err := userRepo.GetUserByID(uint64(userID.(uint)))
+		user, err := userRepo.GetUserByID(c, uint64(userID.(uint)))
 		if err != nil {
 			c.JSON(500, gin.H{
 				"success": false,

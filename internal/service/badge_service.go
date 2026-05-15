@@ -7,6 +7,7 @@ import (
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
+	"gin-quickstart/pkg/logger"
 	"log"
 	"mime/multipart"
 	"os"
@@ -24,12 +25,14 @@ import (
 )
 
 type BadgeService struct {
-	r *repository.BadgeRepository
+	log *logger.Logger
+	r   *repository.BadgeRepository
 }
 
-func NewBadgeService(r *repository.BadgeRepository) *BadgeService {
+func NewBadgeService(log *logger.Logger, r *repository.BadgeRepository) *BadgeService {
 	return &BadgeService{
-		r: r,
+		log: log,
+		r:   r,
 	}
 }
 
@@ -52,7 +55,7 @@ func (s BadgeService) GetAllBadges(ctx *gin.Context) ([]*model.Badge, error) {
 		return nil, getStatus.Err()
 	}
 
-	badges, err := s.r.GetAllBadges()
+	badges, err := s.r.GetAllBadges(ctx)
 
 	if err != nil {
 		return nil, err
@@ -73,7 +76,7 @@ func (s BadgeService) GetAllBadges(ctx *gin.Context) ([]*model.Badge, error) {
 	return badges, nil
 }
 
-func (s BadgeService) GetBadgeByID(id uint64, ctx *gin.Context) (*model.Badge, error) {
+func (s BadgeService) GetBadgeByID(ctx *gin.Context, id uint64) (*model.Badge, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "badge:id:"+strconv.FormatUint(id, 10))
 
 	if getStatus.Err() == nil {
@@ -91,7 +94,7 @@ func (s BadgeService) GetBadgeByID(id uint64, ctx *gin.Context) (*model.Badge, e
 		return nil, getStatus.Err()
 	}
 
-	badge, err := s.r.GetBadgeByID(id)
+	badge, err := s.r.GetBadgeByID(ctx, id)
 
 	if err != nil {
 		return nil, err
@@ -157,7 +160,7 @@ func (s *BadgeService) Create(
 		CriteriaValue: CriteriaValue,
 	}
 
-	cErr := s.r.Create(badge)
+	cErr := s.r.Create(ctx, badge)
 
 	wp.(*workerpool.WorkerPool).Submit(func() {
 		fmt.Println("Uploading from Post")
@@ -205,7 +208,7 @@ func (s *BadgeService) Update(
 	BackgroundColor string,
 	File *multipart.FileHeader,
 ) (*model.Badge, error) {
-	badge, err := s.r.GetBadgeByID(ID)
+	badge, err := s.r.GetBadgeByID(ctx, ID)
 
 	if err != nil {
 		return nil, err
@@ -314,7 +317,7 @@ func (s *BadgeService) Update(
 		})
 	}
 
-	err = s.r.Update(badge)
+	err = s.r.Update(ctx, badge)
 
 	if err != nil {
 		return nil, err
@@ -329,7 +332,7 @@ func (s *BadgeService) Update(
 	return badge, nil
 }
 
-func (s *BadgeService) Delete(badge *model.Badge, ctx *gin.Context) error {
+func (s *BadgeService) Delete(ctx *gin.Context, badge *model.Badge) error {
 	delCmdStatus := s.r.RedisClient.Del(ctx, "badges:"+strconv.FormatUint(uint64(badge.ID), 10))
 
 	if delCmdStatus.Err() != nil {
@@ -342,5 +345,5 @@ func (s *BadgeService) Delete(badge *model.Badge, ctx *gin.Context) error {
 		return delListCmdStatus.Err()
 	}
 
-	return s.r.Delete(badge)
+	return s.r.Delete(ctx, badge)
 }

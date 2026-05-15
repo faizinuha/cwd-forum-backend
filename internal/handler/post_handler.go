@@ -60,7 +60,7 @@ func (h PostHandler) GetPostByID(c *gin.Context) {
 		return
 	}
 
-	post, err := h.s.GetPostByID(id, c)
+	post, err := h.s.GetPostByID(c, id)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -89,7 +89,7 @@ func (h PostHandler) GetPostsByThreadID(c *gin.Context) {
 		return
 	}
 
-	posts, err := h.s.GetPostsByThreadID(threadID, c)
+	posts, err := h.s.GetPostsByThreadID(c, threadID)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -118,7 +118,7 @@ func (h PostHandler) GetPostsByAuthorID(c *gin.Context) {
 		return
 	}
 
-	posts, err := h.s.GetPostsByAuthorID(authorID, c)
+	posts, err := h.s.GetPostsByAuthorID(c, authorID)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -147,7 +147,7 @@ func (h PostHandler) GetPostsByParentID(c *gin.Context) {
 		return
 	}
 
-	posts, err := h.s.GetPostsByParentID(parentID, c)
+	posts, err := h.s.GetPostsByParentID(c, parentID)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -176,7 +176,7 @@ func (h PostHandler) GetPostVotes(c *gin.Context) {
 		return
 	}
 
-	votes, err := h.s.GetPostVotes(postID, c)
+	votes, err := h.s.GetPostVotes(c, postID)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -250,12 +250,12 @@ func (h *PostHandler) Create(c *gin.Context) {
 	req.AuthorID = UserId
 
 	post, err := h.s.Create(
+		c,
 		req.ThreadID,
 		req.Content,
 		req.AuthorID,
 		req.ParentID,
 		Attachments,
-		c,
 	)
 
 	if err != nil {
@@ -295,9 +295,9 @@ func (h *PostHandler) Update(c *gin.Context) {
 	}
 
 	post, err := h.s.Update(
+		c,
 		ID,
 		req.Content,
-		c,
 	)
 
 	if err != nil {
@@ -326,7 +326,7 @@ func (h *PostHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	err = h.s.Delete(ID, c)
+	err = h.s.Delete(c, ID)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -376,7 +376,7 @@ func (h *PostHandler) VotePost(c *gin.Context) {
 		return
 	}
 
-	err = h.s.Vote(ID, uint64(userID.(uint)), req.Value, c)
+	err = h.s.Vote(c, ID, uint64(userID.(uint)), req.Value)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -426,7 +426,7 @@ func (h *PostHandler) ReactPost(c *gin.Context) {
 		return
 	}
 
-	err = h.s.React(ID, uint64(userID.(uint)), req.Emoji, c)
+	err = h.s.React(c, ID, uint64(userID.(uint)), req.Emoji)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -455,7 +455,7 @@ func (h *PostHandler) MarkAsSolution(c *gin.Context) {
 		return
 	}
 
-	post, err := h.s.GetPostByID(ID, c)
+	post, err := h.s.GetPostByID(c, ID)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -465,7 +465,7 @@ func (h *PostHandler) MarkAsSolution(c *gin.Context) {
 		return
 	}
 
-	err = h.s.MarkAsSolution(uint64(post.ID), uint64(userId), c)
+	err = h.s.MarkAsSolution(c, uint64(post.ID), uint64(userId))
 
 	if err != nil {
 		c.JSON(500, gin.H{

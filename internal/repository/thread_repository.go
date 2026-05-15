@@ -2,25 +2,29 @@ package repository
 
 import (
 	"gin-quickstart/internal/model"
+	"gin-quickstart/pkg/logger"
 
+	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type ThreadRepository struct {
+	log         *logger.Logger
 	GormDB      *gorm.DB
 	RedisClient *redis.Client
 }
 
-func NewThreadRepository(db *gorm.DB, redis *redis.Client) *ThreadRepository {
+func NewThreadRepository(log *logger.Logger, db *gorm.DB, redis *redis.Client) *ThreadRepository {
 	return &ThreadRepository{
+		log:         log,
 		GormDB:      db,
 		RedisClient: redis,
 	}
 }
 
 // GETTER
-func (r ThreadRepository) GetAllThreads() ([]model.Thread, error) {
+func (r ThreadRepository) GetAllThreads(ctx *gin.Context) ([]model.Thread, error) {
 	var threads []model.Thread
 	err := r.GormDB.
 		Preload("Category").
@@ -36,7 +40,7 @@ func (r ThreadRepository) GetAllThreads() ([]model.Thread, error) {
 	return threads, nil
 }
 
-func (r ThreadRepository) GetThreadByID(id uint64) (*model.Thread, error) {
+func (r ThreadRepository) GetThreadByID(ctx *gin.Context, id uint64) (*model.Thread, error) {
 	var thread model.Thread
 	err := r.GormDB.
 		Preload("Category").
@@ -53,7 +57,7 @@ func (r ThreadRepository) GetThreadByID(id uint64) (*model.Thread, error) {
 	return &thread, nil
 }
 
-func (r ThreadRepository) GetThreadBySlug(slug string) (*model.Thread, error) {
+func (r ThreadRepository) GetThreadBySlug(ctx *gin.Context, slug string) (*model.Thread, error) {
 	var thread model.Thread
 	err := r.GormDB.Where("slug = ?", slug).First(&thread).Error
 	if err != nil {
@@ -62,7 +66,7 @@ func (r ThreadRepository) GetThreadBySlug(slug string) (*model.Thread, error) {
 	return &thread, nil
 }
 
-func (r ThreadRepository) GetThreadsByCategoryID(categoryID uint) ([]model.Thread, error) {
+func (r ThreadRepository) GetThreadsByCategoryID(ctx *gin.Context, categoryID uint) ([]model.Thread, error) {
 	var threads []model.Thread
 	err := r.GormDB.Where("category_id = ?", categoryID).Find(&threads).Error
 	if err != nil {
@@ -71,7 +75,7 @@ func (r ThreadRepository) GetThreadsByCategoryID(categoryID uint) ([]model.Threa
 	return threads, nil
 }
 
-func (r ThreadRepository) GetThreadsByAuthorID(authorID uint) ([]model.Thread, error) {
+func (r ThreadRepository) GetThreadsByAuthorID(ctx *gin.Context, authorID uint) ([]model.Thread, error) {
 	var threads []model.Thread
 	err := r.GormDB.Where("author_id = ?", authorID).Find(&threads).Error
 	if err != nil {
@@ -80,7 +84,7 @@ func (r ThreadRepository) GetThreadsByAuthorID(authorID uint) ([]model.Thread, e
 	return threads, nil
 }
 
-func (r ThreadRepository) GetThreadsByTagID(tagID uint) ([]model.Thread, error) {
+func (r ThreadRepository) GetThreadsByTagID(ctx *gin.Context, tagID uint) ([]model.Thread, error) {
 	var threads []model.Thread
 	err := r.GormDB.
 		Joins("JOIN thread_tags ON thread_tags.thread_id = threads.id").
@@ -94,19 +98,20 @@ func (r ThreadRepository) GetThreadsByTagID(tagID uint) ([]model.Thread, error) 
 }
 
 // SETTER
-func (r *ThreadRepository) Create(thread *model.Thread) error {
+func (r *ThreadRepository) Create(ctx *gin.Context, thread *model.Thread) error {
 	return r.GormDB.Create(thread).Error
 }
 
-func (r *ThreadRepository) Update(thread *model.Thread) error {
+func (r *ThreadRepository) Update(ctx *gin.Context, thread *model.Thread) error {
 	return r.GormDB.Save(thread).Error
 }
 
-func (r *ThreadRepository) Delete(thread *model.Thread) error {
+func (r *ThreadRepository) Delete(ctx *gin.Context, thread *model.Thread) error {
 	return r.GormDB.Delete(thread).Error
 }
 
 func (r *ThreadRepository) CreatePostAttachment(
+	ctx *gin.Context,
 	post *model.Post,
 	attachment *model.Attachment,
 ) error {

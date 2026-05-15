@@ -8,6 +8,7 @@ import (
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/pkg/jwt"
+	"gin-quickstart/pkg/logger"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -25,22 +26,24 @@ import (
 )
 
 type AuthService struct {
-	r *repository.AuthRepository
+	log *logger.Logger
+	r   *repository.AuthRepository
 }
 
-func NewAuthService(r *repository.AuthRepository) *AuthService {
+func NewAuthService(log *logger.Logger, r *repository.AuthRepository) *AuthService {
 	return &AuthService{
-		r: r,
+		log: log,
+		r:   r,
 	}
 }
 
 // GETTER
 func (s *AuthService) Login(
+	ctx *gin.Context,
 	username string,
 	password string,
-	ctx *gin.Context,
 ) (string, error) {
-	user, err := s.r.GetUserByUsername(username)
+	user, err := s.r.GetUserByUsername(ctx, username)
 
 	if err != nil {
 		return "", err
@@ -69,7 +72,7 @@ func (s *AuthService) Login(
 	return token, nil
 }
 
-func (s AuthService) GetUserByID(id uint64, ctx *gin.Context) (*model.User, error) {
+func (s AuthService) GetUserByID(ctx *gin.Context, id uint64) (*model.User, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "user:"+strconv.FormatUint(id, 10))
 
 	if getStatus.Err() == nil {
@@ -87,10 +90,10 @@ func (s AuthService) GetUserByID(id uint64, ctx *gin.Context) (*model.User, erro
 		return nil, getStatus.Err()
 	}
 
-	return s.r.GetUserById(id)
+	return s.r.GetUserById(ctx, id)
 }
 
-func (s AuthService) GetUserByUsername(username string, ctx *gin.Context) (*model.User, error) {
+func (s AuthService) GetUserByUsername(ctx *gin.Context, username string) (*model.User, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "user:username:"+username)
 
 	if getStatus.Err() == nil {
@@ -108,7 +111,7 @@ func (s AuthService) GetUserByUsername(username string, ctx *gin.Context) (*mode
 		return nil, getStatus.Err()
 	}
 
-	user, err := s.r.GetUserByUsername(username)
+	user, err := s.r.GetUserByUsername(ctx, username)
 
 	if err != nil {
 		return nil, err
@@ -125,7 +128,7 @@ func (s AuthService) GetUserByUsername(username string, ctx *gin.Context) (*mode
 	return user, nil
 }
 
-func (s AuthService) GetUserByEmail(email string, ctx *gin.Context) (*model.User, error) {
+func (s AuthService) GetUserByEmail(ctx *gin.Context, email string) (*model.User, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "user:email:"+email)
 
 	if getStatus.Err() == nil {
@@ -143,7 +146,7 @@ func (s AuthService) GetUserByEmail(email string, ctx *gin.Context) (*model.User
 		return nil, getStatus.Err()
 	}
 
-	user, err := s.r.GetUserByEmail(email)
+	user, err := s.r.GetUserByEmail(ctx, email)
 
 	if err != nil {
 		return nil, err
@@ -166,17 +169,17 @@ func (s AuthService) GetLoggedUser(ctx *gin.Context) (*model.User, error) {
 		return nil, errors.New("User not logged in")
 	}
 
-	return s.GetUserByID(uint64(userID.(uint)), ctx)
+	return s.GetUserByID(ctx, uint64(userID.(uint)))
 }
 
 // SETTER
 func (s *AuthService) Register(
+	ctx *gin.Context,
 	Name string,
 	Username string,
 	Email string,
 	Password string,
 	Role string,
-	ctx *gin.Context,
 ) error {
 	user := &model.User{
 		Name:     Name,
@@ -186,21 +189,21 @@ func (s *AuthService) Register(
 		Role:     Role,
 	}
 
-	usernameExists, _ := s.GetUserByUsername(Username, ctx)
+	usernameExists, _ := s.GetUserByUsername(ctx, Username)
 	if usernameExists != nil {
 		return errors.New("Username already Exists!")
 	}
 
-	emailExists, _ := s.GetUserByEmail(Email, ctx)
+	emailExists, _ := s.GetUserByEmail(ctx, Email)
 	if emailExists != nil {
 		return errors.New("Email already Exists!")
 	}
 
-	return s.r.Register(user)
+	return s.r.Register(ctx, user)
 }
 
-func (s *AuthService) ChangePassword(userID uint64, newPassword string, ctx *gin.Context) error {
-	user, err := s.GetUserByID(userID, ctx)
+func (s *AuthService) ChangePassword(ctx *gin.Context, userID uint64, newPassword string) error {
+	user, err := s.GetUserByID(ctx, userID)
 
 	if err != nil {
 		return err
@@ -212,17 +215,17 @@ func (s *AuthService) ChangePassword(userID uint64, newPassword string, ctx *gin
 		return err
 	}
 
-	return s.r.ChangePassword(uint64(user.ID), string(newPasswordHash))
+	return s.r.ChangePassword(ctx, uint64(user.ID), string(newPasswordHash))
 }
 
-func (s *AuthService) Logout(userID uint64, token string) error {
+func (s *AuthService) Logout(ctx *gin.Context, userID uint64, token string) error {
 	delTokenStatus := s.r.RedisClient.Del(context.Background(), token)
 
 	if delTokenStatus.Err() != nil {
 		return delTokenStatus.Err()
 	}
 
-	return s.r.Logout(userID)
+	return s.r.Logout(ctx, userID)
 }
 
 func (s *AuthService) UpdateProfile(
@@ -233,7 +236,7 @@ func (s *AuthService) UpdateProfile(
 	Bio string,
 	File *multipart.FileHeader,
 ) error {
-	user, err := s.GetUserByID(userID, ctx)
+	user, err := s.GetUserByID(ctx, userID)
 
 	if err != nil {
 		return err
@@ -315,7 +318,7 @@ func (s *AuthService) UpdateProfile(
 		})
 	}
 
-	updateError := s.r.UpdateProfile(user)
+	updateError := s.r.UpdateProfile(ctx, user)
 
 	if updateError != nil {
 		return updateError
