@@ -141,4 +141,3 @@ func (l *Logger) GetTraceID(ctx context.Context) string {
 	}
 	return traceID
 }
-

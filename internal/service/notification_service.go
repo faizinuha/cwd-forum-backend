@@ -5,16 +5,19 @@ import (
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/pkg/email"
+	"gin-quickstart/pkg/logger"
 	"time"
 )
 
 type NotificationService struct {
+	log         *logger.Logger
 	Repo        *repository.NotificationRepository
 	emailClient *email.EmailClient
 }
 
-func NewNotificationService(repo *repository.NotificationRepository) *NotificationService {
+func NewNotificationService(log *logger.Logger, repo *repository.NotificationRepository) *NotificationService {
 	return &NotificationService{
+		log:         log,
 		Repo:        repo,
 		emailClient: email.NewEmailClient(),
 	}

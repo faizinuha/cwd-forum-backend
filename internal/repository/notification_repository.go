@@ -2,23 +2,28 @@ package repository
 
 import (
 	"gin-quickstart/internal/model"
+	"gin-quickstart/pkg/logger"
+
+	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type NotificationRepository struct {
+	log         *logger.Logger
 	GormDB      *gorm.DB
 	RedisClient *redis.Client
 }
 
-func NewNotificationRepository(db *gorm.DB, redis *redis.Client) *NotificationRepository {
+func NewNotificationRepository(log *logger.Logger, db *gorm.DB, redis *redis.Client) *NotificationRepository {
 	return &NotificationRepository{
+		log:         log,
 		GormDB:      db,
 		RedisClient: redis,
 	}
 }
 
-func (r NotificationRepository) GetNotificationsByUserID(userID uint64) ([]model.Notification, error) {
+func (r NotificationRepository) GetNotificationsByUserID(ctx *gin.Context, userID uint64) ([]model.Notification, error) {
 	var notifications []model.Notification
 	err := r.GormDB.Where("user_id = ?", userID).
 		Order("created_at desc").
@@ -32,7 +37,7 @@ func (r NotificationRepository) GetNotificationsByUserID(userID uint64) ([]model
 	return notifications, nil
 }
 
-func (r NotificationRepository) GetNotificationByID(id uint64) (*model.Notification, error) {
+func (r NotificationRepository) GetNotificationByID(ctx *gin.Context, id uint64) (*model.Notification, error) {
 	var notification model.Notification
 	err := r.GormDB.Preload("User").Preload("Thread").Preload("Post").First(&notification, id).Error
 	if err != nil {
@@ -41,14 +46,14 @@ func (r NotificationRepository) GetNotificationByID(id uint64) (*model.Notificat
 	return &notification, nil
 }
 
-func (r *NotificationRepository) Create(notification *model.Notification) error {
+func (r *NotificationRepository) Create(ctx *gin.Context, notification *model.Notification) error {
 	return r.GormDB.Create(notification).Error
 }
 
-func (r *NotificationRepository) Update(notification *model.Notification) error {
+func (r *NotificationRepository) Update(ctx *gin.Context, notification *model.Notification) error {
 	return r.GormDB.Save(notification).Error
 }
 
-func (r *NotificationRepository) Delete(notification *model.Notification) error {
+func (r *NotificationRepository) Delete(ctx *gin.Context, notification *model.Notification) error {
 	return r.GormDB.Delete(notification).Error
 }

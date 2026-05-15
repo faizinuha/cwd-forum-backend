@@ -5,6 +5,7 @@ import (
 	"errors"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
+	"gin-quickstart/pkg/logger"
 	"strconv"
 	"time"
 
@@ -13,12 +14,14 @@ import (
 )
 
 type TagService struct {
-	r *repository.TagRepository
+	log *logger.Logger
+	r   *repository.TagRepository
 }
 
-func NewTagService(r *repository.TagRepository) *TagService {
+func NewTagService(log *logger.Logger, r *repository.TagRepository) *TagService {
 	return &TagService{
-		r: r,
+		log: log,
+		r:   r,
 	}
 }
 
@@ -41,7 +44,7 @@ func (s TagService) GetAllTags(ctx *gin.Context) ([]model.Tag, error) {
 		return nil, getStatus.Err()
 	}
 
-	tags, err := s.r.GetAllTags()
+	tags, err := s.r.GetAllTags(ctx)
 
 	if err != nil {
 		return nil, err
@@ -62,7 +65,7 @@ func (s TagService) GetAllTags(ctx *gin.Context) ([]model.Tag, error) {
 	return tags, nil
 }
 
-func (s TagService) GetTagByID(id uint64, ctx *gin.Context) (*model.Tag, error) {
+func (s TagService) GetTagByID(ctx *gin.Context, id uint64) (*model.Tag, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "tag:"+strconv.FormatUint(id, 10))
 
 	if getStatus.Err() == nil {
@@ -80,7 +83,7 @@ func (s TagService) GetTagByID(id uint64, ctx *gin.Context) (*model.Tag, error) 
 		return nil, getStatus.Err()
 	}
 
-	tag, err := s.r.GetTagByID(id)
+	tag, err := s.r.GetTagByID(ctx, id)
 
 	if err != nil {
 		return nil, err
@@ -101,7 +104,7 @@ func (s TagService) GetTagByID(id uint64, ctx *gin.Context) (*model.Tag, error) 
 	return tag, nil
 }
 
-func (s TagService) GetTagBySlug(slug string, ctx *gin.Context) (*model.Tag, error) {
+func (s TagService) GetTagBySlug(ctx *gin.Context, slug string) (*model.Tag, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "tag:slug:"+slug)
 
 	if getStatus.Err() == nil {
@@ -119,7 +122,7 @@ func (s TagService) GetTagBySlug(slug string, ctx *gin.Context) (*model.Tag, err
 		return nil, getStatus.Err()
 	}
 
-	tag, err := s.r.GetTagBySlug(slug)
+	tag, err := s.r.GetTagBySlug(ctx, slug)
 
 	if err != nil {
 		return nil, err
@@ -142,10 +145,10 @@ func (s TagService) GetTagBySlug(slug string, ctx *gin.Context) (*model.Tag, err
 
 // SETTER
 func (s *TagService) Create(
+	ctx *gin.Context,
 	Name string,
 	Slug string,
 	Color string,
-	ctx *gin.Context,
 ) (*model.Tag, error) {
 	tag := &model.Tag{
 		Name:  Name,
@@ -153,12 +156,12 @@ func (s *TagService) Create(
 		Color: Color,
 	}
 
-	slugExists, _ := s.r.GetTagBySlug(Slug)
+	slugExists, _ := s.r.GetTagBySlug(ctx, Slug)
 	if slugExists != nil {
 		return nil, errors.New("tag with the same slug already exists")
 	}
 
-	err := s.r.Create(tag)
+	err := s.r.Create(ctx, tag)
 	if err != nil {
 		return nil, err
 	}
@@ -173,13 +176,13 @@ func (s *TagService) Create(
 }
 
 func (s *TagService) Update(
+	ctx *gin.Context,
 	ID uint64,
 	Name *string,
 	Slug *string,
 	Color *string,
-	ctx *gin.Context,
 ) (*model.Tag, error) {
-	tag, err := s.r.GetTagByID(ID)
+	tag, err := s.GetTagByID(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +195,7 @@ func (s *TagService) Update(
 		tag.Name = *Name
 	}
 	if Slug != nil {
-		slugExists, _ := s.r.GetTagBySlug(*Slug)
+		slugExists, _ := s.r.GetTagBySlug(ctx, *Slug)
 		if slugExists != nil && slugExists.ID != uint(ID) {
 			return nil, errors.New("tag with the same slug already exists")
 		}
@@ -202,7 +205,7 @@ func (s *TagService) Update(
 		tag.Color = *Color
 	}
 
-	err = s.r.Update(tag)
+	err = s.r.Update(ctx, tag)
 	if err != nil {
 		return nil, err
 	}
@@ -216,8 +219,8 @@ func (s *TagService) Update(
 	return tag, nil
 }
 
-func (s *TagService) Delete(id uint64, ctx *gin.Context) error {
-	tag, err := s.r.GetTagByID(id)
+func (s *TagService) Delete(ctx *gin.Context, id uint64) error {
+	tag, err := s.r.GetTagByID(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -232,7 +235,7 @@ func (s *TagService) Delete(id uint64, ctx *gin.Context) error {
 		return pruneErr
 	}
 
-	err = s.r.Delete(id)
+	err = s.r.Delete(ctx, id)
 	if err != nil {
 		return err
 	}

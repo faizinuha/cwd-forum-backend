@@ -2,17 +2,20 @@ package handler
 
 import (
 	"gin-quickstart/internal/service"
+	"gin-quickstart/pkg/logger"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
+	log     logger.Logger
 	Service *service.UserService
 }
 
-func NewUserHandler(service *service.UserService) *UserHandler {
+func NewUserHandler(log *logger.Logger, service *service.UserService) *UserHandler {
 	return &UserHandler{
+		log:     *log,
 		Service: service,
 	}
 }
@@ -37,6 +40,7 @@ type UpdateUserRequest struct {
 
 // GETTER
 func (h UserHandler) GetAllUsers(c *gin.Context) {
+	h.log.Debug(c, "GetAllUsers called")
 	users, err := h.Service.GetAllUsers(c)
 
 	if err != nil {
@@ -81,7 +85,7 @@ func (h UserHandler) GetUserByID(c *gin.Context) {
 		return
 	}
 
-	user, err := h.Service.GetUserByID(id, c)
+	user, err := h.Service.GetUserByID(c, id)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -101,7 +105,7 @@ func (h UserHandler) GetUserByID(c *gin.Context) {
 func (h UserHandler) GetUserByUsername(c *gin.Context) {
 	username := c.Param("username")
 
-	user, err := h.Service.GetUserByUsername(username, c)
+	user, err := h.Service.GetUserByUsername(c, username)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -120,7 +124,7 @@ func (h UserHandler) GetUserByUsername(c *gin.Context) {
 func (h UserHandler) GetUserByEmail(c *gin.Context) {
 	email := c.Param("email")
 
-	user, err := h.Service.GetUserByEmail(email, c)
+	user, err := h.Service.GetUserByEmail(c, email)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -149,7 +153,7 @@ func (h UserHandler) GetFollowers(c *gin.Context) {
 		return
 	}
 
-	followers, err := h.Service.GetFollowers(userID, c)
+	followers, err := h.Service.GetFollowers(c, userID)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -176,7 +180,7 @@ func (h UserHandler) GetFollowing(c *gin.Context) {
 		return
 	}
 
-	following, err := h.Service.GetFollowing(userID, c)
+	following, err := h.Service.GetFollowing(c, userID)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -205,13 +209,13 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	}
 
 	user, err := h.Service.CreateUser(
+		c,
 		req.Name,
 		req.Username,
 		req.Email,
 		req.Password,
 		req.Avatar,
 		req.Bio,
-		c,
 	)
 
 	if err != nil {
@@ -254,6 +258,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	updatedUser, err := h.Service.UpdateUser(
+		c,
 		id,
 		req.Name,
 		req.Username,
@@ -261,7 +266,6 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		req.Password,
 		req.Avatar,
 		req.Bio,
-		c,
 	)
 
 	if err != nil {
@@ -292,7 +296,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	err = h.Service.DeleteUser(id, c)
+	err = h.Service.DeleteUser(c, id)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -333,7 +337,7 @@ func (h *UserHandler) Follow(c *gin.Context) {
 		return
 	}
 
-	err = h.Service.FollowUser(userID, id, c)
+	err = h.Service.FollowUser(c, userID, id)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -374,7 +378,7 @@ func (h *UserHandler) Unfollow(c *gin.Context) {
 		return
 	}
 
-	err = h.Service.UnfollowUser(userID, id, c)
+	err = h.Service.UnfollowUser(c, userID, id)
 
 	if err != nil {
 		c.JSON(500, gin.H{
