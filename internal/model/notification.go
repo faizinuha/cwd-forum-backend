@@ -2,8 +2,6 @@ package model
 
 import (
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 type Notification struct {
@@ -11,8 +9,8 @@ type Notification struct {
 	ThreadId  *uint      `json:"thread_id,omitempty"`
 	PostId    *uint      `json:"post_id,omitempty"`
 	UserId    uint       `json:"user_id"`
-	Type      string     `json:"type"`    // e.g., "mention", "reply", "upvote"
-	Payload   string     `json:"payload"` // JSON string with additional data (e.g., thread ID, post ID)
+	Type      string     `json:"type"`
+	Payload   string     `json:"payload"`
 	IsRead    bool       `json:"is_read"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/pkg/logger"
 	"time"
@@ -83,7 +84,20 @@ func (r *AuthRepository) UpdateProfile(
 	return r.GormDB.Save(&user).Error
 }
 
-func (r *AuthRepository) Logout(ctx *gin.Context, userID uint64) error {
+func (r *AuthRepository) StoreResetToken(ctx context.Context, email string, token string) error {
+	return r.RedisClient.Set(ctx, "reset:"+token, email, time.Minute*30).Err()
+}
+
+func (r *AuthRepository) GetEmailByResetToken(ctx context.Context, token string) (string, error) {
+	email, err := r.RedisClient.Get(ctx, "reset:"+token).Result()
+	if err != nil {
+		return "", err
+	}
+	r.RedisClient.Del(ctx, "reset:"+token)
+	return email, nil
+}
+
+func (r *AuthRepository) Logout(userID uint64) error {
 	var user model.User
 	err := r.GormDB.First(&user, userID).Error
 	if err != nil {
