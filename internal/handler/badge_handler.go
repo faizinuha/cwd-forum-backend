@@ -3,6 +3,7 @@ package handler
 import (
 	"gin-quickstart/internal/service"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -48,14 +49,14 @@ func (h BadgeHandler) GetAllBadges(c *gin.Context) {
 	badges, err := h.s.GetAllBadges(c)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    badges,
 	})
@@ -66,7 +67,7 @@ func (h BadgeHandler) GetBadgeByID(c *gin.Context) {
 	id, err := strconv.ParseUint(idParam, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid badge ID",
 		})
@@ -76,14 +77,14 @@ func (h BadgeHandler) GetBadgeByID(c *gin.Context) {
 	badge, err := h.s.GetBadgeByID(c, id)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    badge,
 	})
@@ -95,7 +96,7 @@ func (h *BadgeHandler) Create(c *gin.Context) {
 	file, err := c.FormFile("icon")
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Failed to get file from request",
 		})
@@ -108,7 +109,7 @@ func (h *BadgeHandler) Create(c *gin.Context) {
 	criteriaValueStr := c.PostForm("criteria_value")
 	criteriaValue, err := strconv.Atoi(criteriaValueStr)
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid criteria_value, must be an integer",
 		})
@@ -130,14 +131,14 @@ func (h *BadgeHandler) Create(c *gin.Context) {
 	)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   "Failed to create badge: " + err.Error(),
 		})
 		return
 	}
 
-	c.JSON(201, gin.H{
+	c.JSON(http.StatusCreated, gin.H{
 		"success": true,
 		"data":    badge,
 	})
@@ -149,7 +150,7 @@ func (h *BadgeHandler) Update(c *gin.Context) {
 	id, err := strconv.ParseUint(idParam, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid badge ID",
 		})
@@ -182,7 +183,7 @@ func (h *BadgeHandler) Update(c *gin.Context) {
 	if criteriaValueStr != "" {
 		criteriaValue, err := strconv.Atoi(criteriaValueStr)
 		if err != nil {
-			c.JSON(400, gin.H{
+			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
 				"error":   "Invalid criteria_value, must be an integer",
 			})
@@ -212,14 +213,14 @@ func (h *BadgeHandler) Update(c *gin.Context) {
 	)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    badge,
 	})
@@ -230,7 +231,7 @@ func (h *BadgeHandler) Delete(c *gin.Context) {
 	id, err := strconv.ParseUint(idParam, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid badge ID",
 		})
@@ -242,7 +243,7 @@ func (h *BadgeHandler) Delete(c *gin.Context) {
 	wp := c.MustGet("fileUploadWorkerPool").(*workerpool.WorkerPool)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
@@ -271,14 +272,14 @@ func (h *BadgeHandler) Delete(c *gin.Context) {
 	err = h.s.Delete(c, badge)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 	})
 }

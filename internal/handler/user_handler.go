@@ -3,6 +3,7 @@ package handler
 import (
 	"gin-quickstart/internal/service"
 	"gin-quickstart/pkg/logger"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -44,14 +45,14 @@ func (h UserHandler) GetAllUsers(c *gin.Context) {
 	users, err := h.Service.GetAllUsers(c)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    users,
 	})
@@ -67,7 +68,7 @@ func (h UserHandler) GetUserByID(c *gin.Context) {
 		paramUid, err := c.Get("user_id")
 
 		if !err {
-			c.JSON(400, gin.H{
+			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
 				"error":   "user ID is required",
 			})
@@ -78,7 +79,7 @@ func (h UserHandler) GetUserByID(c *gin.Context) {
 	}
 
 	if id == 0 {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "invalid user ID",
 		})
@@ -88,14 +89,14 @@ func (h UserHandler) GetUserByID(c *gin.Context) {
 	user, err := h.Service.GetUserByID(c, id)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "ok",
 		"user":    user,
@@ -108,14 +109,14 @@ func (h UserHandler) GetUserByUsername(c *gin.Context) {
 	user, err := h.Service.GetUserByUsername(c, username)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"message": "ok",
 		"user":    user,
 	})
@@ -127,14 +128,14 @@ func (h UserHandler) GetUserByEmail(c *gin.Context) {
 	user, err := h.Service.GetUserByEmail(c, email)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "ok",
 		"user":    user,
@@ -146,7 +147,7 @@ func (h UserHandler) GetFollowers(c *gin.Context) {
 	userID := c.GetUint64("user_id")
 
 	if userID != 0 {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "invalid user ID",
 		})
@@ -156,14 +157,14 @@ func (h UserHandler) GetFollowers(c *gin.Context) {
 	followers, err := h.Service.GetFollowers(c, userID)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    followers,
 	})
@@ -173,7 +174,7 @@ func (h UserHandler) GetFollowing(c *gin.Context) {
 	userID := c.GetUint64("user_id")
 
 	if userID != 0 {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "invalid user ID",
 		})
@@ -183,14 +184,14 @@ func (h UserHandler) GetFollowing(c *gin.Context) {
 	following, err := h.Service.GetFollowing(c, userID)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    following,
 	})
@@ -201,7 +202,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req CreateUserRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
@@ -219,14 +220,14 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "ok",
 		"user":    user,
@@ -239,7 +240,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	uidParam, pErr := c.Get("user_id")
 
 	if !pErr {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "user ID is required",
 		})
@@ -250,7 +251,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	var req UpdateUserRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
@@ -269,14 +270,14 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "ok",
 		"user":    updatedUser,
@@ -289,7 +290,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	id, err := strconv.ParseUint(param, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "invalid user ID",
 		})
@@ -299,14 +300,14 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	err = h.Service.DeleteUser(c, id)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "ok",
 	})
@@ -319,7 +320,7 @@ func (h *UserHandler) Follow(c *gin.Context) {
 	userIDParam, pErr := c.Get("user_id")
 
 	if !pErr {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "user ID is required",
 		})
@@ -330,7 +331,7 @@ func (h *UserHandler) Follow(c *gin.Context) {
 	id, err := strconv.ParseUint(param, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "invalid user ID",
 		})
@@ -340,14 +341,14 @@ func (h *UserHandler) Follow(c *gin.Context) {
 	err = h.Service.FollowUser(c, userID, id)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "ok",
 	})
@@ -360,7 +361,7 @@ func (h *UserHandler) Unfollow(c *gin.Context) {
 	userIDParam, pErr := c.Get("user_id")
 
 	if !pErr {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "user ID is required",
 		})
@@ -371,7 +372,7 @@ func (h *UserHandler) Unfollow(c *gin.Context) {
 	id, err := strconv.ParseUint(param, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "invalid user ID",
 		})
@@ -381,14 +382,14 @@ func (h *UserHandler) Unfollow(c *gin.Context) {
 	err = h.Service.UnfollowUser(c, userID, id)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "ok",
 	})

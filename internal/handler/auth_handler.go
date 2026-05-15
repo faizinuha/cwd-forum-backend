@@ -27,14 +27,14 @@ func (h AuthHandler) GetProfile(c *gin.Context) {
 	user, err := h.s.GetLoggedUser(c)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    user,
 	})
@@ -45,7 +45,7 @@ func (h AuthHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
@@ -55,14 +55,14 @@ func (h AuthHandler) Login(c *gin.Context) {
 	token, err := h.s.Login(c, req.Username, req.Password)
 
 	if err != nil {
-		c.JSON(401, gin.H{
+		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
 			"error":   "Invalid username or password : " + err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Login successful",
 		"token":   token,
@@ -77,7 +77,7 @@ func (h AuthHandler) Register(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
@@ -87,14 +87,14 @@ func (h AuthHandler) Register(c *gin.Context) {
 	err := h.s.Register(c, req.Name, req.Username, req.Email, req.Password, enum.RoleUser.String())
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(201, gin.H{
+	c.JSON(http.StatusCreated, gin.H{
 		"success": true,
 		"message": "User registered successfully",
 	})
@@ -105,7 +105,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	token, tokenExists := c.Get("token")
 
 	if !exists || !tokenExists {
-		c.JSON(401, gin.H{
+		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
 			"error":   "Unauthorized",
 		})
@@ -113,7 +113,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	}
 
 	if !exists {
-		c.JSON(401, gin.H{
+		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
 			"error":   "Unauthorized",
 		})
@@ -123,14 +123,14 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	err := h.s.Logout(c, uint64(userID.(uint)), token.(string))
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "User logged out successfully",
 	})
@@ -141,7 +141,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 
 	if !exists {
-		c.JSON(401, gin.H{
+		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
 			"error":   "Unauthorized",
 		})
@@ -150,7 +150,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	user, err := h.s.GetUserByID(c, uint64(userID.(uint)))
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
@@ -160,7 +160,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	file, _ := c.FormFile("avatar")
 
 	if user == nil {
-		c.JSON(404, gin.H{
+		c.JSON(http.StatusNotFound, gin.H{
 			"success": false,
 			"error":   "User not found",
 		})
@@ -174,7 +174,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})

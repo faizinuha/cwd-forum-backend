@@ -10,6 +10,7 @@ import (
 	"gin-quickstart/pkg/logger"
 	"log"
 	"mime/multipart"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -279,7 +280,7 @@ func (s *BadgeService) Update(
 			fileBinary, err := File.Open()
 
 			if err != nil {
-				ctx.JSON(400, gin.H{
+				ctx.JSON(http.StatusBadRequest, gin.H{
 					"success": false,
 					"error":   "Failed to open file: " + err.Error(),
 				})
@@ -308,7 +309,7 @@ func (s *BadgeService) Update(
 			})
 
 			if uErr != nil {
-				ctx.JSON(500, gin.H{
+				ctx.JSON(http.StatusInternalServerError, gin.H{
 					"success": false,
 					"error":   "Failed to upload file to S3: " + uErr.Error(),
 				})
