@@ -73,7 +73,7 @@ func (h BadgeHandler) GetBadgeByID(c *gin.Context) {
 		return
 	}
 
-	badge, err := h.s.GetBadgeByID(id, c)
+	badge, err := h.s.GetBadgeByID(c, id)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -237,7 +237,7 @@ func (h *BadgeHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	badge, err := h.s.GetBadgeByID(id, c)
+	badge, err := h.s.GetBadgeByID(c, id)
 
 	wp := c.MustGet("fileUploadWorkerPool").(*workerpool.WorkerPool)
 
@@ -268,7 +268,7 @@ func (h *BadgeHandler) Delete(c *gin.Context) {
 		})
 	}
 
-	err = h.s.Delete(badge, c)
+	err = h.s.Delete(c, badge)
 
 	if err != nil {
 		c.JSON(500, gin.H{

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
+	"gin-quickstart/pkg/logger"
 	"gin-quickstart/pkg/utils"
 	"gin-quickstart/pkg/worker"
 	"mime/multipart"
@@ -22,12 +23,14 @@ import (
 )
 
 type ThreadService struct {
-	r *repository.ThreadRepository
+	log *logger.Logger
+	r   *repository.ThreadRepository
 }
 
-func NewThreadService(r *repository.ThreadRepository) *ThreadService {
+func NewThreadService(log *logger.Logger, r *repository.ThreadRepository) *ThreadService {
 	return &ThreadService{
-		r: r,
+		log: log,
+		r:   r,
 	}
 }
 
@@ -50,7 +53,7 @@ func (s ThreadService) GetAllThreads(ctx *gin.Context) ([]model.Thread, error) {
 		return nil, getStatus.Err()
 	}
 
-	threads, err := s.r.GetAllThreads()
+	threads, err := s.r.GetAllThreads(ctx)
 
 	if err != nil {
 		return nil, err
@@ -89,7 +92,7 @@ func (s ThreadService) GetThreadByID(ctx *gin.Context, id uint64) (*model.Thread
 		return nil, getStatus.Err()
 	}
 
-	thread, err := s.r.GetThreadByID(id)
+	thread, err := s.r.GetThreadByID(ctx, id)
 
 	if err != nil {
 		return nil, err
@@ -128,7 +131,7 @@ func (s ThreadService) GetThreadBySlug(ctx *gin.Context, slug string) (*model.Th
 		return nil, getStatus.Err()
 	}
 
-	thread, err := s.r.GetThreadBySlug(slug)
+	thread, err := s.r.GetThreadBySlug(ctx, slug)
 
 	if err != nil {
 		return nil, err
@@ -167,7 +170,7 @@ func (s ThreadService) GetThreadsByCategoryID(ctx *gin.Context, categoryID uint)
 		return nil, getStatus.Err()
 	}
 
-	threads, err := s.r.GetThreadsByCategoryID(categoryID)
+	threads, err := s.r.GetThreadsByCategoryID(ctx, categoryID)
 
 	if err != nil {
 		return nil, err
@@ -206,7 +209,7 @@ func (s ThreadService) GetThreadsByAuthorID(ctx *gin.Context, authorID uint) ([]
 		return nil, getStatus.Err()
 	}
 
-	threads, err := s.r.GetThreadsByAuthorID(authorID)
+	threads, err := s.r.GetThreadsByAuthorID(ctx, authorID)
 
 	if err != nil {
 		return nil, err
@@ -245,7 +248,7 @@ func (s ThreadService) GetThreadsByTagID(ctx *gin.Context, tagID uint) ([]model.
 		return nil, getStatus.Err()
 	}
 
-	threads, err := s.r.GetThreadsByTagID(tagID)
+	threads, err := s.r.GetThreadsByTagID(ctx, tagID)
 
 	if err != nil {
 		return nil, err
@@ -307,13 +310,13 @@ func (s *ThreadService) Create(
 		return nil, nil, errors.New("Author is not found!")
 	}
 
-	slugExists, _ := s.r.GetThreadBySlug(Slug)
+	slugExists, _ := s.r.GetThreadBySlug(ctx, Slug)
 
 	if slugExists != nil {
 		thread.Slug = Slug + "-" + utils.String(5)
 	}
 
-	err := s.r.Create(thread)
+	err := s.r.Create(ctx, thread)
 
 	if err != nil {
 		return nil, nil, err
@@ -428,7 +431,7 @@ func (s *ThreadService) Update(
 	IsLocked *bool,
 	IsSolved *bool,
 ) (*model.Thread, error) {
-	thread, err := s.r.GetThreadByID(ID)
+	thread, err := s.GetThreadByID(ctx, ID)
 
 	if err != nil {
 		return nil, err
@@ -447,7 +450,7 @@ func (s *ThreadService) Update(
 	}
 
 	if Slug != nil {
-		slugExists, _ := s.r.GetThreadBySlug(*Slug)
+		slugExists, _ := s.GetThreadBySlug(ctx, *Slug)
 
 		if slugExists != nil && uint64(slugExists.ID) != ID {
 			var newSlug string
@@ -472,7 +475,7 @@ func (s *ThreadService) Update(
 		thread.IsSolved = *IsSolved
 	}
 
-	err = s.r.Update(thread)
+	err = s.r.Update(ctx, thread)
 
 	if err != nil {
 		return nil, err
@@ -488,7 +491,7 @@ func (s *ThreadService) Update(
 }
 
 func (s *ThreadService) Delete(ctx *gin.Context, ID uint64) error {
-	thread, err := s.r.GetThreadByID(ID)
+	thread, err := s.r.GetThreadByID(ctx, ID)
 
 	if err != nil {
 		return err
@@ -527,11 +530,11 @@ func (s *ThreadService) Delete(ctx *gin.Context, ID uint64) error {
 
 func (s *ThreadService) CreatePostAttachment(ctx *gin.Context, post *model.Post, attachment *model.Attachment) error {
 	s.r.RedisClient.Del(ctx, "attachments")
-	return s.r.CreatePostAttachment(post, attachment)
+	return s.r.CreatePostAttachment(ctx, post, attachment)
 }
 
 func (s *ThreadService) CanMarkAsSolution(ctx *gin.Context, threadID uint64, userID uint64) (bool, error) {
-	thread, err := s.r.GetThreadByID(threadID)
+	thread, err := s.r.GetThreadByID(ctx, threadID)
 
 	if err != nil {
 		return false, err

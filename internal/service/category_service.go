@@ -5,6 +5,7 @@ import (
 	"errors"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
+	"gin-quickstart/pkg/logger"
 	"strconv"
 	"time"
 
@@ -13,12 +14,14 @@ import (
 )
 
 type CategoryService struct {
-	r *repository.CategoryRepository
+	log *logger.Logger
+	r   *repository.CategoryRepository
 }
 
-func NewCategoryService(r *repository.CategoryRepository) *CategoryService {
+func NewCategoryService(log *logger.Logger, r *repository.CategoryRepository) *CategoryService {
 	return &CategoryService{
-		r: r,
+		log: log,
+		r:   r,
 	}
 }
 
@@ -41,7 +44,7 @@ func (s CategoryService) GetAllCategories(ctx *gin.Context) ([]model.Category, e
 		return nil, getStatus.Err()
 	}
 
-	categories, err := s.r.GetAllCategories()
+	categories, err := s.r.GetAllCategories(ctx)
 
 	if err != nil {
 		return nil, err
@@ -62,7 +65,7 @@ func (s CategoryService) GetAllCategories(ctx *gin.Context) ([]model.Category, e
 	return categories, nil
 }
 
-func (s CategoryService) GetCategoryByID(id uint64, ctx *gin.Context) (*model.Category, error) {
+func (s CategoryService) GetCategoryByID(ctx *gin.Context, id uint64) (*model.Category, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "category:id:"+strconv.FormatUint(id, 10))
 
 	if getStatus.Err() == nil {
@@ -80,7 +83,7 @@ func (s CategoryService) GetCategoryByID(id uint64, ctx *gin.Context) (*model.Ca
 		return nil, getStatus.Err()
 	}
 
-	category, err := s.r.GetCategoryByID(id)
+	category, err := s.r.GetCategoryByID(ctx, id)
 
 	if err != nil {
 		return nil, err
@@ -101,7 +104,7 @@ func (s CategoryService) GetCategoryByID(id uint64, ctx *gin.Context) (*model.Ca
 	return category, nil
 }
 
-func (s CategoryService) GetCategoryBySlug(slug string, ctx *gin.Context) (*model.Category, error) {
+func (s CategoryService) GetCategoryBySlug(ctx *gin.Context, slug string) (*model.Category, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "category:slug:"+slug)
 
 	if getStatus.Err() == nil {
@@ -119,7 +122,7 @@ func (s CategoryService) GetCategoryBySlug(slug string, ctx *gin.Context) (*mode
 		return nil, getStatus.Err()
 	}
 
-	category, err := s.r.GetCategoryBySlug(slug)
+	category, err := s.r.GetCategoryBySlug(ctx, slug)
 
 	if err != nil {
 		return nil, err
@@ -142,6 +145,7 @@ func (s CategoryService) GetCategoryBySlug(slug string, ctx *gin.Context) (*mode
 
 // SETTER
 func (s *CategoryService) Create(
+	ctx *gin.Context,
 	ParentID *uint,
 	Name string,
 	Slug string,
@@ -149,7 +153,6 @@ func (s *CategoryService) Create(
 	IconUrl string,
 	SortOrder int,
 	IsPrivate bool,
-	ctx *gin.Context,
 ) (*model.Category, error) {
 	category := &model.Category{
 		ParentID:    ParentID,
@@ -162,7 +165,7 @@ func (s *CategoryService) Create(
 	}
 
 	if ParentID != nil {
-		parentCategory, err := s.r.GetCategoryByID(uint64(*ParentID))
+		parentCategory, err := s.r.GetCategoryByID(ctx, uint64(*ParentID))
 
 		if err != nil {
 			return nil, errors.New("Parent category not found")
@@ -173,13 +176,13 @@ func (s *CategoryService) Create(
 		}
 	}
 
-	slugExists, _ := s.r.GetCategoryBySlug(Slug)
+	slugExists, _ := s.r.GetCategoryBySlug(ctx, Slug)
 
 	if slugExists != nil {
 		return nil, errors.New("Slug already exists")
 	}
 
-	err := s.r.Create(category)
+	err := s.r.Create(ctx, category)
 
 	if err != nil {
 		return nil, err
@@ -195,6 +198,7 @@ func (s *CategoryService) Create(
 }
 
 func (s *CategoryService) Update(
+	ctx *gin.Context,
 	ID uint64,
 	ParentID *uint,
 	Name *string,
@@ -203,9 +207,8 @@ func (s *CategoryService) Update(
 	IconUrl *string,
 	SortOrder *int,
 	IsPrivate *bool,
-	ctx *gin.Context,
 ) (*model.Category, error) {
-	category, err := s.r.GetCategoryByID(ID)
+	category, err := s.r.GetCategoryByID(ctx, ID)
 
 	if err != nil {
 		return nil, err
@@ -216,7 +219,7 @@ func (s *CategoryService) Update(
 	}
 
 	if ParentID != nil {
-		parentCategory, err := s.r.GetCategoryByID(uint64(*ParentID))
+		parentCategory, err := s.r.GetCategoryByID(ctx, uint64(*ParentID))
 
 		if err != nil {
 			return nil, errors.New("Parent category not found")
@@ -236,7 +239,7 @@ func (s *CategoryService) Update(
 	}
 
 	if Slug != nil {
-		slugExists, _ := s.r.GetCategoryBySlug(*Slug)
+		slugExists, _ := s.r.GetCategoryBySlug(ctx, *Slug)
 
 		if slugExists != nil && slugExists.ID != category.ID {
 			return nil, errors.New("Slug already exists")
@@ -261,7 +264,7 @@ func (s *CategoryService) Update(
 		category.IsPrivate = *IsPrivate
 	}
 
-	err = s.r.Update(category)
+	err = s.r.Update(ctx, category)
 
 	if err != nil {
 		return nil, err
@@ -282,8 +285,8 @@ func (s *CategoryService) Update(
 	return category, nil
 }
 
-func (s *CategoryService) Delete(ID uint64, ctx *gin.Context) error {
-	category, err := s.r.GetCategoryByID(ID)
+func (s *CategoryService) Delete(ctx *gin.Context, ID uint64) error {
+	category, err := s.r.GetCategoryByID(ctx, ID)
 
 	if err != nil {
 		return err
@@ -305,7 +308,7 @@ func (s *CategoryService) Delete(ID uint64, ctx *gin.Context) error {
 		return errors.New("Cannot delete category with existing subcategories")
 	}
 
-	delErr := s.r.Delete(category)
+	delErr := s.r.Delete(ctx, category)
 
 	if delErr != nil {
 		return delErr

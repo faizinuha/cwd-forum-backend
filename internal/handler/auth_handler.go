@@ -49,7 +49,7 @@ func (h AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := h.s.Login(req.Username, req.Password, c)
+	token, err := h.s.Login(c, req.Username, req.Password)
 
 	if err != nil {
 		c.JSON(401, gin.H{
@@ -77,7 +77,7 @@ func (h AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	err := h.s.Register(req.Name, req.Username, req.Email, req.Password, enum.RoleUser.String(), c)
+	err := h.s.Register(c, req.Name, req.Username, req.Email, req.Password, enum.RoleUser.String())
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -113,7 +113,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	err := h.s.Logout(uint64(userID.(uint)), token.(string))
+	err := h.s.Logout(c, uint64(userID.(uint)), token.(string))
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -140,7 +140,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		})
 	}
 
-	user, err := h.s.GetUserByID(uint64(userID.(uint)), c)
+	user, err := h.s.GetUserByID(c, uint64(userID.(uint)))
 
 	if err != nil {
 		c.JSON(500, gin.H{

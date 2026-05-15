@@ -40,8 +40,8 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 
 		user.DELETE("/:id", middleware.JWTMiddleware(deps.Redis), middleware.IsAdminLogged(*userRepo, deps.Redis), userHandler.DeleteUser)
 
-		categoryRepo := repository.NewCategoryRepository(deps.DB, deps.Redis)
-		categoryService := service.NewCategoryService(categoryRepo)
+		categoryRepo := repository.NewCategoryRepository(deps.Logger, deps.DB, deps.Redis)
+		categoryService := service.NewCategoryService(deps.Logger, categoryRepo)
 		categoryHandler := handler.NewCategoryHandler(categoryService)
 
 		category := v1.Group("/categories")
@@ -53,8 +53,8 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 		category.PATCH("/:id", middleware.JWTMiddleware(deps.Redis), middleware.IsAdminLogged(*userRepo, deps.Redis), categoryHandler.Update)
 		category.DELETE("/:id", middleware.JWTMiddleware(deps.Redis), middleware.IsAdminLogged(*userRepo, deps.Redis), categoryHandler.Delete)
 
-		threadRepo := repository.NewThreadRepository(deps.DB, deps.Redis)
-		threadService := service.NewThreadService(threadRepo)
+		threadRepo := repository.NewThreadRepository(deps.Logger, deps.DB, deps.Redis)
+		threadService := service.NewThreadService(deps.Logger, threadRepo)
 		threadHandler := handler.NewThreadHandler(threadService)
 
 		thread := v1.Group("/threads")
@@ -69,8 +69,8 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 		thread.PATCH("/:id", middleware.JWTMiddleware(deps.Redis), middleware.IsCanUpdateThread(deps.DB, threadService), threadHandler.Update)
 		thread.DELETE("/:id", middleware.JWTMiddleware(deps.Redis), middleware.IsCanUpdateThread(deps.DB, threadService), threadHandler.Delete)
 
-		postRepo := repository.NewPostRepository(deps.DB, deps.Redis)
-		postService := service.NewPostService(postRepo)
+		postRepo := repository.NewPostRepository(deps.Logger, deps.DB, deps.Redis)
+		postService := service.NewPostService(deps.Logger, postRepo)
 		postHandler := handler.NewPostHandler(postService)
 
 		post := v1.Group("/posts")
@@ -86,8 +86,8 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 		post.DELETE("/:id", postHandler.Delete)
 		post.POST("/:id/mark-as-solution", middleware.JWTMiddleware(deps.Redis), postHandler.MarkAsSolution)
 
-		tagRepo := repository.NewTagRepository(deps.DB, deps.Redis)
-		tagService := service.NewTagService(tagRepo)
+		tagRepo := repository.NewTagRepository(deps.Logger, deps.DB, deps.Redis)
+		tagService := service.NewTagService(deps.Logger, tagRepo)
 		tagHandler := handler.NewTagHandler(tagService)
 
 		tag := v1.Group("/tags")
@@ -101,8 +101,8 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 		tag.PATCH("/:id", middleware.IsAdminLogged(*userRepo, deps.Redis), tagHandler.UpdateTag)
 		tag.DELETE("/:id", middleware.IsAdminLogged(*userRepo, deps.Redis), tagHandler.DeleteTag)
 
-		attachmentRepo := repository.NewAttachmentRepository(deps.DB, deps.Redis)
-		attachmentService := service.NewAttachmentService(attachmentRepo)
+		attachmentRepo := repository.NewAttachmentRepository(deps.Logger, deps.DB, deps.Redis)
+		attachmentService := service.NewAttachmentService(deps.Logger, attachmentRepo)
 		attachmentHandler := handler.NewAttachmentHandler(attachmentService)
 
 		attachment := v1.Group("/attachments")
@@ -115,8 +115,8 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 		attachment.DELETE("/:id", attachmentHandler.DeleteAttachment)
 		attachment.GET("/post/:post_id", attachmentHandler.GetAttachmentsByPostID)
 
-		badgeRepo := repository.NewBadgeRepository(deps.DB, deps.Redis)
-		badgeService := service.NewBadgeService(badgeRepo)
+		badgeRepo := repository.NewBadgeRepository(deps.Logger, deps.DB, deps.Redis)
+		badgeService := service.NewBadgeService(deps.Logger, badgeRepo)
 		badgeHandler := handler.NewBadgeHandler(badgeService)
 
 		badge := v1.Group("/badges")
@@ -129,8 +129,8 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 		badge.PATCH("/:id", middleware.IsAdminLogged(*userRepo, deps.Redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(deps.Worker.Worker), badgeHandler.Update)
 		badge.DELETE("/:id", middleware.IsAdminLogged(*userRepo, deps.Redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(deps.Worker.Worker), badgeHandler.Delete)
 
-		notificationRepo := repository.NewNotificationRepository(deps.DB, deps.Redis)
-		notificationService := service.NewNotificationService(notificationRepo)
+		notificationRepo := repository.NewNotificationRepository(deps.Logger, deps.DB, deps.Redis)
+		notificationService := service.NewNotificationService(deps.Logger, notificationRepo)
 		notificationHandler := handler.NewNotificationHandler(notificationService)
 
 		notification := v1.Group("/notifications")
@@ -143,8 +143,8 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 		notification.PATCH("/:id", notificationHandler.UpdateNotification)
 		notification.DELETE("/:id", notificationHandler.DeleteNotification)
 
-		authRepo := repository.NewAuthRepository(deps.DB, deps.Redis)
-		authService := service.NewAuthService(authRepo)
+		authRepo := repository.NewAuthRepository(deps.Logger, deps.DB, deps.Redis)
+		authService := service.NewAuthService(deps.Logger, authRepo)
 		authHandler := handler.NewAuthHandler(authService)
 
 		auth := v1.Group("/auth")

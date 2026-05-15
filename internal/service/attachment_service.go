@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
+	"gin-quickstart/pkg/logger"
 	"strconv"
 	"time"
 
@@ -12,12 +13,14 @@ import (
 )
 
 type AttachmentService struct {
-	r *repository.AttachmentRepository
+	log *logger.Logger
+	r   *repository.AttachmentRepository
 }
 
-func NewAttachmentService(r *repository.AttachmentRepository) *AttachmentService {
+func NewAttachmentService(log *logger.Logger, r *repository.AttachmentRepository) *AttachmentService {
 	return &AttachmentService{
-		r: r,
+		log: log,
+		r:   r,
 	}
 }
 
@@ -40,7 +43,7 @@ func (s AttachmentService) GetAllAttachments(ctx *gin.Context) ([]*model.Attachm
 		return nil, getStatus.Err()
 	}
 
-	attachments, err := s.r.GetAllAttachments()
+	attachments, err := s.r.GetAllAttachments(ctx)
 
 	if err != nil {
 		return nil, err
@@ -61,7 +64,7 @@ func (s AttachmentService) GetAllAttachments(ctx *gin.Context) ([]*model.Attachm
 	return attachments, nil
 }
 
-func (s AttachmentService) GetAttachmentByID(id uint64, ctx *gin.Context) (*model.Attachment, error) {
+func (s AttachmentService) GetAttachmentByID(ctx *gin.Context, id uint64) (*model.Attachment, error) {
 	idStr := strconv.FormatUint(id, 10)
 
 	getStatus := s.r.RedisClient.Get(ctx, "attachment:"+idStr)
@@ -77,7 +80,7 @@ func (s AttachmentService) GetAttachmentByID(id uint64, ctx *gin.Context) (*mode
 		return &attachment, nil
 	}
 
-	attachmentById, err := s.r.GetAttachmentByID(id)
+	attachmentById, err := s.r.GetAttachmentByID(ctx, id)
 
 	if err != nil {
 		return nil, err
@@ -95,10 +98,10 @@ func (s AttachmentService) GetAttachmentByID(id uint64, ctx *gin.Context) (*mode
 		return nil, setStatus.Err()
 	}
 
-	return s.r.GetAttachmentByID(id)
+	return s.r.GetAttachmentByID(ctx, id)
 }
 
-func (s AttachmentService) GetAttachmentsByPostID(postID uint64, ctx *gin.Context) ([]*model.Attachment, error) {
+func (s AttachmentService) GetAttachmentsByPostID(ctx *gin.Context, postID uint64) ([]*model.Attachment, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "attachments:post:"+strconv.FormatUint(postID, 10))
 
 	if getStatus.Err() == nil {
@@ -116,7 +119,7 @@ func (s AttachmentService) GetAttachmentsByPostID(postID uint64, ctx *gin.Contex
 		return nil, getStatus.Err()
 	}
 
-	attachments, err := s.r.GetAttachmentsByPostID(postID)
+	attachments, err := s.r.GetAttachmentsByPostID(ctx, postID)
 
 	if err != nil {
 		return nil, err
@@ -134,13 +137,13 @@ func (s AttachmentService) GetAttachmentsByPostID(postID uint64, ctx *gin.Contex
 		return nil, cmdStatus.Err()
 	}
 
-	return s.r.GetAttachmentsByPostID(postID)
+	return s.r.GetAttachmentsByPostID(ctx, postID)
 }
 
 // SETTER
-func (s *AttachmentService) Delete(attachment *model.Attachment, ctx *gin.Context) error {
+func (s *AttachmentService) Delete(ctx *gin.Context, attachment *model.Attachment) error {
 	s.r.RedisClient.Del(ctx, "attachments")
 	s.r.RedisClient.Del(ctx, "attachment:"+strconv.FormatUint(uint64(attachment.ID), 10))
 	s.r.RedisClient.Del(ctx, "attachments:post:"+strconv.FormatUint(uint64(attachment.PostID), 10))
-	return s.r.Delete(attachment)
+	return s.r.Delete(ctx, attachment)
 }
