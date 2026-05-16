@@ -144,10 +144,12 @@ func (h UserHandler) GetUserByEmail(c *gin.Context) {
 }
 
 func (h UserHandler) GetFollowers(c *gin.Context) {
+	var userID uint64
+	userIDParam := c.Param("id")
 
-	userID := c.GetUint64("user_id")
+	userID, err := strconv.ParseUint(userIDParam, 10, 64)
 
-	if userID != 0 {
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "invalid user ID",
@@ -172,9 +174,12 @@ func (h UserHandler) GetFollowers(c *gin.Context) {
 }
 
 func (h UserHandler) GetFollowing(c *gin.Context) {
-	userID := c.GetUint64("user_id")
+	var userID uint64
+	userIDParam := c.Param("id")
 
-	if userID != 0 {
+	userID, err := strconv.ParseUint(userIDParam, 10, 64)
+
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "invalid user ID",
@@ -238,18 +243,18 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
-	var id uint64
-	uidParam, pErr := c.Get("user_id")
+	var userID uint64
+	userIDParam := c.Param("id")
 
-	if !pErr {
+	userID, err := strconv.ParseUint(userIDParam, 10, 64)
+
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "user ID is required",
 		})
 		return
 	}
-
-	id = uint64(uidParam.(uint))
 
 	var req UpdateUserRequest
 
@@ -264,7 +269,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 
 	updatedUser, err := h.Service.UpdateUser(
 		c,
-		id,
+		userID,
 		req.Name,
 		req.Username,
 		req.Email,

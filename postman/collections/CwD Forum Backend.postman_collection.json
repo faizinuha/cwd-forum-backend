@@ -69,7 +69,14 @@
           "id": "aa099f7e-d5f8-439a-a259-2ce1ca1d6948",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text",
+                "uuid": "d7e41cee-793d-4e08-af07-bb82d9a6ae43"
+              }
+            ],
             "url": {
               "raw": "localhost:8080/v1/users/:id",
               "host": [

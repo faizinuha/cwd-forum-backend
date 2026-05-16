@@ -1,7 +1,6 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"gin-quickstart/internal/model"
@@ -13,13 +12,11 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 )
 
 type ThreadService struct {
@@ -36,234 +33,78 @@ func NewThreadService(log *logger.Logger, r *repository.ThreadRepository) *Threa
 
 // GETTER
 func (s ThreadService) GetAllThreads(ctx *gin.Context) ([]model.Thread, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "threads")
-
-	if getStatus.Err() == nil {
-		var threads []model.Thread
-		err := json.Unmarshal([]byte(getStatus.Val()), &threads)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return threads, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
 
 	threads, err := s.r.GetAllThreads(ctx)
+	s.log.Debug(ctx, "GetAllThreads Service", s.log.Field("Count", len(threads)))
 
 	if err != nil {
+		s.log.Error(ctx, "GetAllThreads Service Error", err)
 		return nil, err
-	}
-
-	json, err := json.Marshal(threads)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "threads", json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return threads, nil
 }
 
 func (s ThreadService) GetThreadByID(ctx *gin.Context, id uint64) (*model.Thread, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "thread:"+strconv.FormatUint(id, 10))
-
-	if getStatus.Err() == nil {
-		var thread model.Thread
-		err := json.Unmarshal([]byte(getStatus.Val()), &thread)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return &thread, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
 
 	thread, err := s.r.GetThreadByID(ctx, id)
+	s.log.Debug(ctx, "GetThreadByID Service", s.log.Field("ID", id))
 
 	if err != nil {
+		s.log.Error(ctx, "GetThreadByID Service Error", err, s.log.Field("ID", id))
 		return nil, err
-	}
-
-	json, err := json.Marshal(thread)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "thread:"+strconv.FormatUint(id, 10), json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return thread, nil
 }
 
 func (s ThreadService) GetThreadBySlug(ctx *gin.Context, slug string) (*model.Thread, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "thread:slug:"+slug)
-
-	if getStatus.Err() == nil {
-		var thread model.Thread
-		err := json.Unmarshal([]byte(getStatus.Val()), &thread)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return &thread, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
 
 	thread, err := s.r.GetThreadBySlug(ctx, slug)
+	s.log.Debug(ctx, "GetThreadBySlug Service", s.log.Field("Slug", slug))
 
 	if err != nil {
+		s.log.Error(ctx, "GetThreadBySlug Service Error", err, s.log.Field("Slug", slug))
 		return nil, err
-	}
-
-	json, err := json.Marshal(thread)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "thread:slug:"+slug, json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return thread, nil
 }
 
 func (s ThreadService) GetThreadsByCategoryID(ctx *gin.Context, categoryID uint) ([]model.Thread, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "threads:category:"+strconv.FormatUint(uint64(categoryID), 10))
-
-	if getStatus.Err() == nil {
-		var threads []model.Thread
-		err := json.Unmarshal([]byte(getStatus.Val()), &threads)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return threads, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
 
 	threads, err := s.r.GetThreadsByCategoryID(ctx, categoryID)
+	s.log.Debug(ctx, "GetThreadsByCategoryID Service", s.log.Field("CategoryID", categoryID), s.log.Field("Count", len(threads)))
 
 	if err != nil {
+		s.log.Error(ctx, "GetThreadsByCategoryID Service Error", err, s.log.Field("CategoryID", categoryID))
 		return nil, err
-	}
-
-	json, err := json.Marshal(threads)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "threads:category:"+strconv.FormatUint(uint64(categoryID), 10), json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return threads, nil
 }
 
 func (s ThreadService) GetThreadsByAuthorID(ctx *gin.Context, authorID uint) ([]model.Thread, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "threads:author:"+strconv.FormatUint(uint64(authorID), 10))
-
-	if getStatus.Err() == nil {
-		var threads []model.Thread
-		err := json.Unmarshal([]byte(getStatus.Val()), &threads)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return threads, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
 
 	threads, err := s.r.GetThreadsByAuthorID(ctx, authorID)
+	s.log.Debug(ctx, "GetThreadsByAuthorID Service", s.log.Field("AuthorID", authorID), s.log.Field("Count", len(threads)))
 
 	if err != nil {
+		s.log.Error(ctx, "GetThreadsByAuthorID Service Error", err, s.log.Field("AuthorID", authorID))
 		return nil, err
-	}
-
-	json, err := json.Marshal(threads)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "threads:author:"+strconv.FormatUint(uint64(authorID), 10), json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return threads, nil
 }
 
 func (s ThreadService) GetThreadsByTagID(ctx *gin.Context, tagID uint) ([]model.Thread, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "threads:tag:"+strconv.FormatUint(uint64(tagID), 10))
-
-	if getStatus.Err() == nil {
-		var threads []model.Thread
-		err := json.Unmarshal([]byte(getStatus.Val()), &threads)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return threads, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
 
 	threads, err := s.r.GetThreadsByTagID(ctx, tagID)
+	s.log.Debug(ctx, "GetThreadsByTagID Service", s.log.Field("TagID", tagID), s.log.Field("Count", len(threads)))
 
 	if err != nil {
+		s.log.Error(ctx, "GetThreadsByTagID Service Error", err, s.log.Field("TagID", tagID))
 		return nil, err
-	}
-
-	json, err := json.Marshal(threads)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "threads:tag:"+strconv.FormatUint(uint64(tagID), 10), json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return threads, nil
@@ -359,12 +200,6 @@ func (s *ThreadService) Create(
 
 			tags = append(tags, tag)
 
-			delTagCacheStatus := s.r.RedisClient.Del(ctx, "tag:id:"+strconv.FormatUint(uint64(tag.ID), 10), "tag:slug:"+tag.Slug)
-
-			if delTagCacheStatus.Err() != nil {
-				return thread, post, delTagCacheStatus.Err()
-			}
-
 		}
 
 		err = s.r.GormDB.Model(thread).Association("Tags").Append(&tags)
@@ -372,12 +207,6 @@ func (s *ThreadService) Create(
 		if err != nil {
 			return thread, post, err
 		}
-	}
-
-	delStatus := s.r.RedisClient.Del(ctx, "threads", "thread:"+strconv.FormatUint(uint64(thread.ID), 10), "thread:slug:"+thread.Slug)
-
-	if delStatus.Err() != nil {
-		return thread, post, delStatus.Err()
 	}
 
 	for _, file := range Attachments {
@@ -481,12 +310,6 @@ func (s *ThreadService) Update(
 		return nil, err
 	}
 
-	delStatus := s.r.RedisClient.Del(ctx, "threads", "thread:"+strconv.FormatUint(uint64(thread.ID), 10), "thread:slug:"+thread.Slug)
-
-	if delStatus.Err() != nil {
-		return nil, delStatus.Err()
-	}
-
 	return thread, nil
 }
 
@@ -513,23 +336,10 @@ func (s *ThreadService) Delete(ctx *gin.Context, ID uint64) error {
 		}
 	}
 
-	delErr := s.r.GormDB.Delete(&thread).Error
-
-	if delErr != nil {
-		return delErr
-	}
-
-	delThreadCacheStatus := s.r.RedisClient.Del(ctx, "threads", "thread:"+strconv.FormatUint(uint64(thread.ID), 10), "thread:slug:"+thread.Slug)
-
-	if delThreadCacheStatus.Err() != nil {
-		return delThreadCacheStatus.Err()
-	}
-
 	return nil
 }
 
 func (s *ThreadService) CreatePostAttachment(ctx *gin.Context, post *model.Post, attachment *model.Attachment) error {
-	s.r.RedisClient.Del(ctx, "attachments")
 	return s.r.CreatePostAttachment(ctx, post, attachment)
 }
 

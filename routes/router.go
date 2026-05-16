@@ -29,12 +29,13 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 		user.GET("/", middleware.JWTMiddleware(deps.Redis), userHandler.GetAllUsers)
 		user.POST("/", middleware.JWTMiddleware(deps.Redis), middleware.IsAdminLogged(*userRepo, deps.Redis), userHandler.CreateUser)
 		user.GET("/:id", middleware.JWTMiddleware(deps.Redis), middleware.IsAdminLogged(*userRepo, deps.Redis), userHandler.GetUserByID)
+		user.GET("/:id/followers", middleware.JWTMiddleware(deps.Redis), userHandler.GetFollowers)
+		user.GET("/:id/following", middleware.JWTMiddleware(deps.Redis), userHandler.GetFollowing)
 		user.GET("/username/:username", middleware.JWTMiddleware(deps.Redis), userHandler.GetUserByUsername)
+		user.GET("/email/:email", middleware.JWTMiddleware(deps.Redis), middleware.IsAdminLogged(*userRepo, deps.Redis), userHandler.GetUserByEmail)
 		user.PATCH("/:id", middleware.JWTMiddleware(deps.Redis), middleware.IsAdminLogged(*userRepo, deps.Redis), userHandler.UpdateUser)
 
 		userUtility := user.Group("/utility")
-		userUtility.GET("/me", middleware.JWTMiddleware(deps.Redis), userHandler.GetUserByID)
-		userUtility.PATCH("/me", middleware.JWTMiddleware(deps.Redis), userHandler.UpdateUser)
 		userUtility.POST("/follow/:id", middleware.JWTMiddleware(deps.Redis), userHandler.Follow)
 		userUtility.POST("/unfollow/:id", middleware.JWTMiddleware(deps.Redis), userHandler.Unfollow)
 
