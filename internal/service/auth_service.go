@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"gin-quickstart/internal/model"
@@ -23,7 +22,6 @@ import (
 	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -77,94 +75,15 @@ func (s *AuthService) Login(
 }
 
 func (s AuthService) GetUserByID(ctx *gin.Context, id uint64) (*model.User, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "user:"+strconv.FormatUint(id, 10))
-
-	if getStatus.Err() == nil {
-		var user model.User
-		err := json.Unmarshal([]byte(getStatus.Val()), &user)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return &user, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
 	return s.r.GetUserById(ctx, id)
 }
 
 func (s AuthService) GetUserByUsername(ctx *gin.Context, username string) (*model.User, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "user:username:"+username)
-
-	if getStatus.Err() == nil {
-		var user model.User
-		err := json.Unmarshal([]byte(getStatus.Val()), &user)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return &user, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	user, err := s.r.GetUserByUsername(ctx, username)
-
-	if err != nil {
-		return nil, err
-	}
-
-	json, err := json.Marshal(user)
-
-	if err != nil {
-		return nil, err
-	}
-
-	s.r.RedisClient.Set(ctx, "user:username:"+username, json, time.Hour)
-
-	return user, nil
+	return s.r.GetUserByUsername(ctx, username)
 }
 
 func (s AuthService) GetUserByEmail(ctx *gin.Context, email string) (*model.User, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "user:email:"+email)
-
-	if getStatus.Err() == nil {
-		var user model.User
-		err := json.Unmarshal([]byte(getStatus.Val()), &user)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return &user, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	user, err := s.r.GetUserByEmail(ctx, email)
-
-	if err != nil {
-		return nil, err
-	}
-
-	json, err := json.Marshal(user)
-
-	if err != nil {
-		return nil, err
-	}
-
-	s.r.RedisClient.Set(ctx, "user:email:"+email, json, time.Hour)
-
-	return user, nil
+	return s.r.GetUserByEmail(ctx, email)
 }
 
 func (s AuthService) GetLoggedUser(ctx *gin.Context) (*model.User, error) {

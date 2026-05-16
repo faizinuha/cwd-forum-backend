@@ -1,7 +1,6 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"gin-quickstart/internal/enum"
@@ -13,16 +12,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 )
 
 type BadgeService struct {
@@ -38,79 +34,25 @@ func NewBadgeService(log *logger.Logger, r *repository.BadgeRepository) *BadgeSe
 }
 
 // GETTER
-func (s BadgeService) GetAllBadges(ctx *gin.Context) ([]*model.Badge, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "badges")
-
-	if getStatus.Err() == nil {
-		var badges []*model.Badge
-		err := json.Unmarshal([]byte(getStatus.Val()), &badges)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return badges, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
+func (s BadgeService) GetAllBadges(ctx *gin.Context) ([]model.Badge, error) {
 	badges, err := s.r.GetAllBadges(ctx)
+	s.log.Debug(ctx, "Service GetAllBadges Called", s.log.Field("Count", len(badges)))
 
 	if err != nil {
+		s.log.Error(ctx, "Service GetAllBadges Error", err)
 		return nil, err
-	}
-
-	json, err := json.Marshal(badges)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "badges", json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return badges, nil
 }
 
 func (s BadgeService) GetBadgeByID(ctx *gin.Context, id uint64) (*model.Badge, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "badge:id:"+strconv.FormatUint(id, 10))
-
-	if getStatus.Err() == nil {
-		var badge model.Badge
-		err := json.Unmarshal([]byte(getStatus.Val()), &badge)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return &badge, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
 	badge, err := s.r.GetBadgeByID(ctx, id)
+	s.log.Debug(ctx, "Service GetBadgeByID Called", s.log.Field("BadgeID", id))
 
 	if err != nil {
+		s.log.Error(ctx, "Service GetBadgeByID Error", err, s.log.Field("BadgeID", id))
 		return nil, err
-	}
-
-	json, err := json.Marshal(badge)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "badge:id:"+strconv.FormatUint(id, 10), json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return badge, nil
@@ -187,12 +129,6 @@ func (s *BadgeService) Create(
 
 	if cErr != nil {
 		return nil, cErr
-	}
-
-	delCmdStatus := s.r.RedisClient.Del(ctx, "badges")
-
-	if delCmdStatus.Err() != nil {
-		return nil, delCmdStatus.Err()
 	}
 
 	return badge, nil
@@ -324,27 +260,9 @@ func (s *BadgeService) Update(
 		return nil, err
 	}
 
-	delCmdStatus := s.r.RedisClient.Del(ctx, "badges:"+strconv.FormatUint(ID, 10))
-
-	if delCmdStatus.Err() != nil {
-		return nil, delCmdStatus.Err()
-	}
-
 	return badge, nil
 }
 
 func (s *BadgeService) Delete(ctx *gin.Context, badge *model.Badge) error {
-	delCmdStatus := s.r.RedisClient.Del(ctx, "badges:"+strconv.FormatUint(uint64(badge.ID), 10))
-
-	if delCmdStatus.Err() != nil {
-		return delCmdStatus.Err()
-	}
-
-	delListCmdStatus := s.r.RedisClient.Del(ctx, "badges")
-
-	if delListCmdStatus.Err() != nil {
-		return delListCmdStatus.Err()
-	}
-
 	return s.r.Delete(ctx, badge)
 }
