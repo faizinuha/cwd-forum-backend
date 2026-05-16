@@ -3,17 +3,20 @@ package handler
 import (
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/service"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 )
 
 type NotificationHandler struct {
 	Service *service.NotificationService
+	Hub     *service.WSHub
 }
 
-func NewNotificationHandler(service *service.NotificationService) *NotificationHandler {
-	return &NotificationHandler{Service: service}
+func NewNotificationHandler(service *service.NotificationService, hub *service.WSHub) *NotificationHandler {
+	return &NotificationHandler{Service: service, Hub: hub}
 }
 
 type CreateNotificationRequest struct {
@@ -146,4 +149,33 @@ func (h NotificationHandler) DeleteNotification(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"success": true, "message": "notification deleted"})
+}
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true // Allow all origins for now
+	},
+}
+
+func (h NotificationHandler) HandleWebSocket(c *gin.Context) {
+	userID := c.GetUint("user_id")
+
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "failed to upgrade connection"})
+		return
+	}
+
+	h.Hub.Register(userID, conn)
+
+	// Keep connection alive and handle disconnect
+	go func() {
+		defer h.Hub.Unregister(userID)
+		for {
+			_, _, err := conn.ReadMessage()
+			if err != nil {
+				break
+			}
+		}
+	}()
 }

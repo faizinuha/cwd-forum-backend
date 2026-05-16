@@ -164,12 +164,17 @@ func SetupRouter(wp *worker.WorkerPool) *gin.Engine {
 		{
 			notificationRepo := repository.NewNotificationRepository(db, redis)
 			notificationService := service.NewNotificationService(notificationRepo)
-			notificationHandler := handler.NewNotificationHandler(notificationService)
+
+			wsHub := service.NewWSHub()
+			go wsHub.StartRedisListener()
+
+			notificationHandler := handler.NewNotificationHandler(notificationService, wsHub)
 
 			notification := v1.Group("/notifications")
 			notification.Use(middleware.JWTMiddleware(redis))
 
 			notification.GET("/", notificationHandler.GetNotifications)
+			notification.GET("/ws", notificationHandler.HandleWebSocket)
 			notification.GET("/:id", notificationHandler.GetNotificationByID)
 			notification.POST("/", notificationHandler.CreateNotification)
 			notification.PATCH("/:id/read", notificationHandler.MarkAsRead)
