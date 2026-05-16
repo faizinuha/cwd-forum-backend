@@ -1,9 +1,13 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"gin-quickstart/config"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
+	"log"
 	"time"
 )
 
@@ -43,6 +47,16 @@ func (s NotificationService) CreateNotification(notification *model.Notification
 	err := s.Repo.Create(notification)
 	if err != nil {
 		return nil, err
+	}
+
+	// Publish to Redis Pub/Sub
+	if config.RedisClient != nil {
+		payload, err := json.Marshal(notification)
+		if err == nil {
+			config.RedisClient.Publish(context.Background(), "realtime:notifications", string(payload))
+		} else {
+			log.Println("Error marshalling notification for redis:", err)
+		}
 	}
 
 	return notification, nil
